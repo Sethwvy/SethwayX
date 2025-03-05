@@ -36,39 +36,17 @@ class WelcomeFragment : Fragment() {
     super.onViewCreated(view, savedInstanceState)
     binding.startButton.setOnClickListener {
       if (canPostNotifications) {
-        secondStep()
+        findNavController().navigate(R.id.pairFragment)
       } else {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
       }
     }
-    binding.shareButton.setOnClickListener {
-      findNavController().navigate(R.id.shareFragment)
-    }
-    binding.receiveButton.setOnClickListener {
-      findNavController().navigate(R.id.receiveFragment)
-    }
-  }
-
-  private fun secondStep() {
-    binding.apply {
-      startButton.visibility = View.GONE
-      actionLayout.visibility = View.VISIBLE
-    }
-    val text = "What to do?"
-    ValueAnimator.ofInt(0, text.length)
-      .setDuration(250)
-      .also {
-        it.addUpdateListener { animation ->
-          binding.title.text = text.substring(0, animation.animatedValue as Int)
-        }
-      }.start()
-
   }
 
   private val notificationPermissionLauncher =
     registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
       if (granted) {
-        secondStep()
+        findNavController().navigate(R.id.pairFragment)
       } else {
         convinceUser()
       }

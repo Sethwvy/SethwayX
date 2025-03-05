@@ -24,12 +24,21 @@
         android:text="@string/welcome_description" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/startButton"
-        style="@style/Widget.Material3.Button.TonalButton"
+        android:id="@+id/receiveButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="32sp"
-        android:text="Get started"
+        android:text="Share notifications"
+        android:textStyle="bold" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/shareButton"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Receive notifications"
         android:textColor="?attr/colorPrimary"
         android:textStyle="bold" />
+
 </LinearLayout>
