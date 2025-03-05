@@ -1,7 +1,6 @@
 package `in`.sethway.ui.welcome
 
 import android.Manifest
-import android.animation.ValueAnimator
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
