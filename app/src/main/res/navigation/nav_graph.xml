@@ -3,23 +3,41 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/connectFragment">
+    app:startDestination="@id/welcomeFragment">
 
     <fragment
-        android:id="@+id/welcome"
+        android:id="@+id/welcomeFragment"
         android:name="in.sethway.ui.welcome.WelcomeFragment"
         android:label="fragment_welcome"
         tools:layout="@layout/fragment_welcome" />
 
     <fragment
-        android:id="@+id/broadcastFragment"
-        android:name="in.sethway.ui.broadcast.BroadcastFragment"
+        android:id="@+id/receiveFragment"
+        android:name="in.sethway.ui.receive.ReceiveFragment"
         android:label="fragment_broadcast"
-        tools:layout="@layout/fragment_broadcast" />
-    <fragment
+        tools:layout="@layout/fragment_receive">
+        <action
+            android:id="@+id/receve_to_home"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/receiveFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
 
-        android:id="@+id/connectFragment"
-        android:name="in.sethway.ui.connect.ConnectFragment"
+    <fragment
+        android:id="@+id/shareFragment"
+        android:name="in.sethway.ui.share.ShareFragment"
         android:label="fragment_connect"
-        tools:layout="@layout/fragment_connect" />
+        tools:layout="@layout/fragment_share">
+        <action
+            android:id="@+id/share_to_home"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/shareFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="in.sethway.ui.home.HomeFragment"
+        android:label="fragment_home"
+        tools:layout="@layout/fragment_home" />
 </navigation>

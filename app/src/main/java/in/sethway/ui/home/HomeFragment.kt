@@ -1,29 +1,24 @@
-package `in`.sethway.ui.broadcast
+package `in`.sethway.ui.home
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import `in`.sethway.databinding.FragmentBroadcastBinding
+import `in`.sethway.databinding.FragmentHomeBinding
 
 
-class BroadcastFragment : Fragment() {
+class HomeFragment : Fragment() {
 
-  private var _binding: FragmentBroadcastBinding? = null
+  private var _binding: FragmentHomeBinding? = null
   private val binding get() = _binding!!
-
 
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
     savedInstanceState: Bundle?
   ): View {
-    _binding = FragmentBroadcastBinding.inflate(inflater)
+    _binding = FragmentHomeBinding.inflate(inflater)
     return binding.root
-  }
-
-  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-    super.onViewCreated(view, savedInstanceState)
   }
 
   override fun onDestroyView() {

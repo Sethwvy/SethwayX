@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".ui.broadcast.BroadcastFragment">
+    tools:context=".ui.receive.ReceiveFragment">
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start|center_vertical"
-            android:text="Share"
+            android:text="Connect"
             android:textSize="30sp"
             android:textStyle="bold" />
 
@@ -36,7 +36,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:text="Share your notifications with the other device" />
+        android:text="Sync notifications from the other devicee" />
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/scanCard"

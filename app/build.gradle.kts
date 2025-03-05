@@ -48,10 +48,15 @@ dependencies {
 
   implementation("com.tencent:mmkv:2.1.0")
 
-  implementation ("androidx.camera:camera-core:1.4.1")
+  implementation("androidx.camera:camera-core:1.4.1")
   implementation("androidx.camera:camera-camera2:1.4.1")
   implementation("androidx.camera:camera-lifecycle:1.4.1")
   implementation("androidx.camera:camera-view:1.4.1")
+
+  implementation("com.github.alexzhirkevich:custom-qr-generator:1.6.2")
+
+  implementation("com.github.XomaDev:Smart-UDP:00df31fc80")
+  implementation(libs.play.services.mlkit.barcode.scanning)
 
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.junit)
