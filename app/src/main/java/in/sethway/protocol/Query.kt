@@ -16,7 +16,7 @@ object Query {
     .put("addresses", addresses())
     .toString()
 
-  fun addresses(): JSONArray {
+  private fun addresses(): JSONArray {
     val addresses = ArrayList<Inet6Address>()
     NetworkInterface.getNetworkInterfaces().iterator().forEach { i ->
       i.inetAddresses.iterator().forEach { a ->
