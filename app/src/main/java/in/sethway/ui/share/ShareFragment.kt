@@ -20,23 +20,32 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorColors
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorFrameShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
+import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentShareBinding
 import `in`.sethway.protocol.ServerHandshake
 import `in`.sethway.protocol.Query
+import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
+import java.lang.IllegalStateException
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ShareFragment : Fragment() {
 
   private var _binding: FragmentShareBinding? = null
   private val binding get() = _binding!!
 
-  private var updaterRunning = true
+  private val updaterRunning = AtomicBoolean(true)
 
   private val qrUpdater = object : Runnable {
     override fun run() {
-      if (updaterRunning) {
-        displayQr(Query.shareSelf(requireContext().contentResolver))
-        Handler(Looper.getMainLooper()).postDelayed(this, 5000)
+      if (updaterRunning.get()) {
+        try {
+          displayQr(Query.shareSelf(requireContext().contentResolver))
+          Handler(Looper.getMainLooper()).postDelayed(this, 5000)
+        } catch (ignored: IllegalStateException) {
+          // can be safely ignored, happens when we call requireContext()
+          // after the fragment has been destroyed
+        }
       }
     }
   }
@@ -51,13 +60,17 @@ class ShareFragment : Fragment() {
         "Successfully added $deviceName to receivers list",
         Toast.LENGTH_LONG
       ).show()
-      findNavController().navigate(R.id.share_to_home)
+      App.mmkv.encode("welcome", true)
+      App.mmkv.encode("transmitter", true)
+      findNavController().navigate(
+        if (ManageNotificationPermissionFragment.canManageNotifications(requireContext())) R.id.share_to_home
+        else R.id.manageNotificationPermissionFragment
+      )
     }
   }
 
   override fun onDestroy() {
     super.onDestroy()
-    updaterRunning = false
     serverHandshake.close()
   }
 
@@ -112,6 +125,7 @@ class ShareFragment : Fragment() {
   override fun onDestroyView() {
     super.onDestroyView()
     _binding = null
+    updaterRunning.set(false)
   }
 
 }

@@ -5,20 +5,26 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.gms.common.api.GoogleApi.Settings
 import `in`.sethway.R
 import `in`.sethway.adapters.ImageAdapter
 import `in`.sethway.databinding.FragmentManageNotificationPermissionBinding
 
 
 class ManageNotificationPermissionFragment : Fragment() {
+
+  companion object {
+    fun canManageNotifications(context: Context) = android.provider.Settings.Secure.getString(
+      context.contentResolver,
+      "enabled_notification_listeners"
+    ).contains(context.packageName)
+  }
 
   private var _binding: FragmentManageNotificationPermissionBinding? = null
   private val binding get() = _binding!!
@@ -79,16 +85,10 @@ class ManageNotificationPermissionFragment : Fragment() {
 
   override fun onResume() {
     super.onResume()
-    if (canManageNotifications) {
+    if (canManageNotifications(requireContext())) {
       findNavController().navigate(R.id.homeFragment)
     }
   }
-
-  private val canManageNotifications
-    get() = android.provider.Settings.Secure.getString(
-      requireContext().contentResolver,
-      "enabled_notification_listeners"
-    ).contains(requireContext().packageName)
 
   override fun onDestroyView() {
     super.onDestroyView()

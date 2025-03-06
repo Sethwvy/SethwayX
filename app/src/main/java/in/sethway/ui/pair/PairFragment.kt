@@ -29,10 +29,10 @@ class PairFragment : Fragment() {
     super.onViewCreated(view, savedInstanceState)
 
     binding.shareButton.setOnClickListener {
-      findNavController().navigate(R.id.shareFragment)
+      findNavController().navigate(R.id.receiveFragment)
     }
     binding.receiveButton.setOnClickListener {
-      findNavController().navigate(R.id.receiveFragment)
+      findNavController().navigate(R.id.shareFragment)
     }
 
     val text = "What to do?"

@@ -15,6 +15,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentReceiveBinding
 import `in`.sethway.protocol.ClientHandshake
@@ -39,6 +40,7 @@ class ReceiveFragment : Fragment() {
         "$deviceName was connected successfully",
         Toast.LENGTH_LONG
       ).show()
+      App.mmkv.encode("welcome", true)
       findNavController().navigate(R.id.receve_to_home)
     }
     qrAnalysis = QrImageAnalysis(requireContext()) { qrContent: String ->

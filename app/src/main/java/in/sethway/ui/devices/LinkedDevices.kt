@@ -5,7 +5,6 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import `in`.sethway.R
 import `in`.sethway.adapters.DevicesAdapter
@@ -32,20 +31,20 @@ class LinkedDevices : Fragment() {
       listClients.layoutManager = LinearLayoutManager(requireContext())
       listBroadcasters.layoutManager = LinearLayoutManager(requireContext())
 
-      val sources = Devices.getSources()
-      if (sources.length() == 0) {
+      val clients = Devices.getClients()
+      if (clients.length() == 0) {
         clientsHint.setText(R.string.hint_no_devices)
       } else {
         clientsHint.setText(R.string.hint_yes_devices)
-        listClients.adapter = DevicesAdapter(sources)
+        listClients.adapter = DevicesAdapter(clients)
       }
 
-      val clients = Devices.getClients()
-      if (clients.length() == 0) {
+      val sources = Devices.getSources()
+      if (sources.length() == 0) {
         broadcastersHint.setText(R.string.hint_no_devices)
       } else {
         broadcastersHint.setText(R.string.hint_yes_devices)
-        listBroadcasters.adapter = DevicesAdapter(clients)
+        listBroadcasters.adapter = DevicesAdapter(sources)
       }
     }
 

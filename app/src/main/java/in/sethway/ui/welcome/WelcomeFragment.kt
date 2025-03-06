@@ -1,6 +1,7 @@
 package `in`.sethway.ui.welcome
 
 import android.Manifest
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -18,6 +19,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentWelcomeBinding
+import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 
 class WelcomeFragment : Fragment() {
 
@@ -27,7 +29,13 @@ class WelcomeFragment : Fragment() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     if (App.mmkv.getBoolean("welcome", false)) {
-      findNavController().navigate(R.id.homeFragment)
+      if (App.mmkv.getBoolean("transmitter", false)
+        && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())
+      ) {
+        findNavController().navigate(R.id.manageNotificationPermissionFragment)
+      } else {
+        findNavController().navigate(R.id.homeFragment)
+      }
     }
   }
 
@@ -43,7 +51,7 @@ class WelcomeFragment : Fragment() {
     super.onViewCreated(view, savedInstanceState)
     binding.startButton.setOnClickListener {
       if (canPostNotifications) {
-        nextFragment()
+        findNavController().navigate(R.id.pairFragment)
       } else {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
       }
@@ -53,48 +61,44 @@ class WelcomeFragment : Fragment() {
   private val notificationPermissionLauncher =
     registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
       if (granted) {
-        nextFragment()
+        findNavController().navigate(R.id.pairFragment)
       } else {
         convinceUser()
       }
     }
-
-  private fun nextFragment() {
-    App.mmkv.encode("welcome", true)
-    findNavController().navigate(R.id.pairFragment)
-  }
 
   private fun convinceUser() {
     // noinspection InlinedApi
     val deniedByUser = ActivityCompat.shouldShowRequestPermissionRationale(
       requireActivity(), Manifest.permission.POST_NOTIFICATIONS
     )
+    val title = "Notification permission"
+    val message: String
+    val onPositiveButton: DialogInterface.OnClickListener
     if (deniedByUser) {
-      MaterialAlertDialogBuilder(requireContext())
-        .setTitle("Notification permission")
-        .setMessage("As part of the app's core functionality, please allow the sending of notifications")
-        .setCancelable(false)
-        .setPositiveButton("Sure") { _, _ ->
-          // noinspection InlinedApi
-          notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        .show()
+      message = "As part of the app's core functionality, please allow the sending of notifications"
+      onPositiveButton = DialogInterface.OnClickListener { _, _ ->
+        // noinspection InlinedApi
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+      }
     } else {
-      MaterialAlertDialogBuilder(requireContext())
-        .setTitle("Notification permission")
-        .setMessage("The permission has been denied by the system, please enable it in settings")
-        .setCancelable(false)
-        .setPositiveButton("Sure") { _, _ ->
-          // noinspection InlinedApi
-          notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-          startActivity(
-            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-              putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
-            }
-          )
-        }
-        .show()
+      message = "The permission has been denied by the system, please enable it in settings"
+      onPositiveButton = DialogInterface.OnClickListener { _, _ ->
+        // noinspection InlinedApi
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        startActivity(
+          Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
+          }
+        )
+      }
     }
+    MaterialAlertDialogBuilder(requireContext())
+      .setTitle(title)
+      .setMessage(message)
+      .setCancelable(false)
+      .setPositiveButton("Sure", onPositiveButton)
+      .show()
   }
 
   private val canPostNotifications
