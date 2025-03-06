@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentWelcomeBinding
 
@@ -22,6 +23,13 @@ class WelcomeFragment : Fragment() {
 
   private var _binding: FragmentWelcomeBinding? = null
   private val binding get() = _binding!!
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    if (App.mmkv.getBoolean("welcome", false)) {
+      findNavController().navigate(R.id.homeFragment)
+    }
+  }
 
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
@@ -35,7 +43,7 @@ class WelcomeFragment : Fragment() {
     super.onViewCreated(view, savedInstanceState)
     binding.startButton.setOnClickListener {
       if (canPostNotifications) {
-        findNavController().navigate(R.id.pairFragment)
+        nextFragment()
       } else {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
       }
@@ -45,11 +53,16 @@ class WelcomeFragment : Fragment() {
   private val notificationPermissionLauncher =
     registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
       if (granted) {
-        findNavController().navigate(R.id.pairFragment)
+        nextFragment()
       } else {
         convinceUser()
       }
     }
+
+  private fun nextFragment() {
+    App.mmkv.encode("welcome", true)
+    findNavController().navigate(R.id.pairFragment)
+  }
 
   private fun convinceUser() {
     // noinspection InlinedApi

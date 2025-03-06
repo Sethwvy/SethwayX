@@ -27,6 +27,7 @@ class DevicesAdapter(private val entries: JSONArray) :
   override fun onBindViewHolder(holder: ElementHolder, position: Int) {
     val entry = entries.getJSONObject(position)
     val deviceName = entry.getString("device_name")
+    println("Setting device name $deviceName")
     holder.deviceName.text = deviceName
   }
 

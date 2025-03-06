@@ -34,8 +34,8 @@ class ShareFragment : Fragment() {
 
   private val qrUpdater = object : Runnable {
     override fun run() {
-      displayQr(Query.shareSelf(requireContext().contentResolver))
       if (updaterRunning) {
+        displayQr(Query.shareSelf(requireContext().contentResolver))
         Handler(Looper.getMainLooper()).postDelayed(this, 5000)
       }
     }

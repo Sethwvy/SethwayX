@@ -5,6 +5,9 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import androidx.recyclerview.widget.LinearLayoutManager
+import `in`.sethway.R
 import `in`.sethway.adapters.DevicesAdapter
 import `in`.sethway.databinding.FragmentLinkedDevicesBinding
 import `in`.sethway.protocol.Devices
@@ -25,21 +28,28 @@ class LinkedDevices : Fragment() {
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
 
-    val clients = Devices.getClients()
-    if (clients.length() == 0) {
-      binding.emptyClientsHint.visibility = View.VISIBLE
-      binding.listClients.adapter = DevicesAdapter(clients)
-    } else {
-      binding.emptyClientsHint.visibility = View.GONE
+    binding.apply {
+      listClients.layoutManager = LinearLayoutManager(requireContext())
+      listBroadcasters.layoutManager = LinearLayoutManager(requireContext())
+
+      val sources = Devices.getSources()
+      if (sources.length() == 0) {
+        clientsHint.setText(R.string.hint_no_devices)
+      } else {
+        clientsHint.setText(R.string.hint_yes_devices)
+        listClients.adapter = DevicesAdapter(sources)
+      }
+
+      val clients = Devices.getClients()
+      if (clients.length() == 0) {
+        broadcastersHint.setText(R.string.hint_no_devices)
+      } else {
+        broadcastersHint.setText(R.string.hint_yes_devices)
+        listBroadcasters.adapter = DevicesAdapter(clients)
+      }
     }
 
-    val sources = Devices.getSources()
-    if (sources.length() == 0) {
-      binding.emptyBroadcastersHint.visibility = View.VISIBLE
-      binding.listBroadcasters.adapter = DevicesAdapter(sources)
-    } else {
-      binding.emptyBroadcastersHint.visibility = View.GONE
-    }
+
   }
 
   override fun onDestroyView() {

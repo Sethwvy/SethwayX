@@ -54,6 +54,7 @@ dependencies {
   implementation("androidx.camera:camera-view:1.4.1")
 
   implementation("com.github.alexzhirkevich:custom-qr-generator:1.6.2")
+  implementation("me.relex:circleindicator:2.1.6")
 
   implementation("com.github.XomaDev:Smart-UDP:00df31fc80")
   implementation(libs.play.services.mlkit.barcode.scanning)

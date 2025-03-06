@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/linkedDevices">
+    app:startDestination="@id/manageNotificationPermissionFragment">
 
     <fragment
         android:id="@+id/welcomeFragment"
@@ -40,13 +40,27 @@
         android:name="in.sethway.ui.home.HomeFragment"
         android:label="fragment_home"
         tools:layout="@layout/fragment_home" />
+
     <fragment
         android:id="@+id/pairFragment"
         android:name="in.sethway.ui.pair.PairFragment"
         android:label="PairFragment" />
+
     <fragment
         android:id="@+id/linkedDevices"
         android:name="in.sethway.ui.devices.LinkedDevices"
         android:label="fragment_linked_devices"
         tools:layout="@layout/fragment_linked_devices" />
+
+    <fragment
+        android:id="@+id/manageNotificationPermissionFragment"
+        android:name="in.sethway.ui.manage_notif.ManageNotificationPermissionFragment"
+        android:label="fragment_manage_notification_permission"
+        tools:layout="@layout/fragment_manage_notification_permission">
+        <action
+            android:id="@+id/permission_to_home"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/manageNotificationPermissionFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
 </navigation>
