@@ -1,4 +1,4 @@
-package `in`.sethway.services
+package `in`.sethway.services.share
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -11,6 +11,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.InetAddress
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class NotificationShareService : NotificationListenerService() {
 
@@ -19,13 +21,18 @@ class NotificationShareService : NotificationListenerService() {
   }
 
   private lateinit var mmkv: MMKV
+  private lateinit var backlog: EntryBacklog
   private lateinit var smartUDP: SmartUDP
+
+  private lateinit var executor: ExecutorService
 
   override fun onCreate() {
     super.onCreate()
     App.initMMKV(this)
+    EntryBacklog.init()
     mmkv = MMKV.mmkvWithID("sync")
     smartUDP = SmartUDP().create(App.SYNC_TRANS_PORT)
+    executor = Executors.newSingleThreadExecutor()
 
     smartUDP.route("sync_direct_ack") { _, bytes ->
       val json = JSONObject(String(bytes))
@@ -34,9 +41,24 @@ class NotificationShareService : NotificationListenerService() {
       saveSyncAck(id, entryId)
       null
     }
+
+    smartUDP.route("clear_backlog") { _, bytes ->
+      val json = JSONObject(String(bytes))
+      val id = json.getString("id")
+      executor.submit { clearBacklog(id) }
+      null
+    }
+  }
+
+  private fun clearBacklog(id: String) {
+    backlog.forEachBacklog(id) { entry ->
+      deliverTo(id, createDeliveryEntry(entry))
+    }
   }
 
   private fun saveSyncAck(id: String, entryId: Long) {
+    backlog.acknowledgeDelivery(id, entryId)
+
     val deviceName = getDeviceName(id)
     Log.d(TAG, "Received sync acknowledgment from $deviceName for Id $entryId")
     val entryAcknowledgements = JSONArray(mmkv.decodeString(entryId.toString(), "[]"))
@@ -57,7 +79,8 @@ class NotificationShareService : NotificationListenerService() {
     val text = (extras.get("android.text") ?: return).toString()
 
     val entry = createNotificationEntry(title, text)
-    deliverNew(createDeliveryEntry(entry))
+    backlog.add(entry)
+    deliverToAll(createDeliveryEntry(entry))
   }
 
   /**
@@ -76,9 +99,25 @@ class NotificationShareService : NotificationListenerService() {
     .put("type", "notification")
     .put("notification", entry)
 
-  private fun deliverNew(entry: JSONObject) {
+  private fun deliverToAll(entry: JSONObject) {
     val payload = entry.toString().toByteArray()
     forEachClientAddress { address: String ->
+      try {
+        smartUDP.message(
+          InetAddress.getByName(address),
+          App.SYNC_REC_PORT,
+          payload,
+          "sync_direct"
+        )
+      } catch (e: IOException) {
+        println("I/O deliverNew() ${e.javaClass.simpleName} ${e.message}")
+      }
+    }
+  }
+
+  private fun deliverTo(id: String, entry: JSONObject) {
+    val payload = entry.toString().toByteArray()
+    forEachAddressOfClient(id) { address: String ->
       try {
         smartUDP.message(
           InetAddress.getByName(address),
@@ -100,9 +139,17 @@ class NotificationShareService : NotificationListenerService() {
       val addresses = client.getJSONArray("addresses")
       val addrLen = addresses.length()
       for (j in 0..<addrLen) {
-        val address = addresses.getString(j)
-        consumer(address)
+        consumer(addresses.getString(j))
       }
+    }
+  }
+
+  private fun forEachAddressOfClient(id: String, consumer: (address: String) -> Unit) {
+    val client = Devices.getClient(id)
+    val addresses = client.getJSONArray("addresses")
+    val addrLen = addresses.length()
+    for (i in 0..<addrLen) {
+      consumer(addresses.getString(i))
     }
   }
 }

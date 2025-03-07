@@ -11,6 +11,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.InetAddress
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class NotificationSyncService : Service() {
 
@@ -22,6 +23,7 @@ class NotificationSyncService : Service() {
   private lateinit var smartUDP: SmartUDP
 
   private val executor = Executors.newSingleThreadExecutor()
+  private val periodicExecutor = Executors.newScheduledThreadPool(1)
 
   override fun onCreate() {
     super.onCreate()
@@ -40,6 +42,32 @@ class NotificationSyncService : Service() {
       executor.submit { acknowledgeSyncEntry(address, entryId) }
 
       null
+    }
+
+    periodicExecutor.scheduleWithFixedDelay({
+      clearBacklog()
+    }, 0, 5, TimeUnit.SECONDS)
+  }
+
+  /**
+   * Attempt to clear any possible backlog with the sources
+   */
+  private fun clearBacklog() {
+    val payload = JSONObject()
+      .put("me", App.ID)
+      .toString()
+      .toByteArray()
+    forEachSourceAddresses { address: String ->
+      try {
+        smartUDP.message(
+          InetAddress.getByName(address),
+          App.SYNC_TRANS_PORT,
+          payload,
+          "clear_backlog"
+        )
+      } catch (e: IOException) {
+        println("I/O clearBacklog() ${e.javaClass.simpleName} ${e.message}")
+      }
     }
   }
 
@@ -72,10 +100,25 @@ class NotificationSyncService : Service() {
 
   private fun getDeviceName(id: String): String = Devices.getSource(id).getString("device_name")
 
+  private fun forEachSourceAddresses(consumer: (address: String) -> Unit) {
+    val sources = Devices.getClients()
+    val sourcesLen = sources.length()
+    for (i in 0..<sourcesLen) {
+      val source = sources.getJSONObject(i)
+      val addresses = source.getJSONArray("addresses")
+      val addrLen = addresses.length()
+      for (j in 0..<addrLen) {
+        val address = addresses.getString(j)
+        consumer(address)
+      }
+    }
+  }
+
   override fun onDestroy() {
     super.onDestroy()
     smartUDP.close()
     executor.shutdownNow()
+    periodicExecutor.shutdownNow()
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
