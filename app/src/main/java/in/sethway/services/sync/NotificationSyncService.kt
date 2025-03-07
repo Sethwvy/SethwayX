@@ -36,6 +36,7 @@ class NotificationSyncService : Service() {
   override fun onCreate() {
     super.onCreate()
     App.initMMKV(this)
+    EntryLog.init()
     mmkv = MMKV.mmkvWithID("sync")
     smartUDP = SmartUDP().create(App.SYNC_REC_PORT)
     notificationManager = getSystemService(NotificationManager::class.java)
@@ -46,10 +47,12 @@ class NotificationSyncService : Service() {
 
       val notification = json.getJSONObject("notification")
       val entryId = notification.getLong("time") // entryId is Time!
-      consumeSyncEntry(id, notification)
 
-      executor.submit { acknowledgeSyncEntry(address, entryId) }
-
+      if (!EntryLog.existEntry(entryId)) {
+        EntryLog.addEntry(entryId, notification)
+        consumeSyncEntry(id, notification)
+        executor.submit { acknowledgeSyncEntry(address, entryId) }
+      }
       null
     }
 
