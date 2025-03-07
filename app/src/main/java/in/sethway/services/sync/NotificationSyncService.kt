@@ -1,4 +1,4 @@
-package `in`.sethway.services
+package `in`.sethway.services.sync
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -17,6 +17,7 @@ import java.io.IOException
 import java.net.InetAddress
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 class NotificationSyncService : Service() {
 
@@ -27,6 +28,8 @@ class NotificationSyncService : Service() {
   private lateinit var mmkv: MMKV
   private lateinit var smartUDP: SmartUDP
 
+  private lateinit var notificationManager: NotificationManager
+
   private val executor = Executors.newSingleThreadExecutor()
   private val periodicExecutor = Executors.newScheduledThreadPool(1)
 
@@ -35,13 +38,14 @@ class NotificationSyncService : Service() {
     App.initMMKV(this)
     mmkv = MMKV.mmkvWithID("sync")
     smartUDP = SmartUDP().create(App.SYNC_REC_PORT)
+    notificationManager = getSystemService(NotificationManager::class.java)
 
     smartUDP.route("sync_direct") { address, bytes ->
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
-      val entryId = json.getLong("time") // entryId is Time!
 
       val notification = json.getJSONObject("notification")
+      val entryId = notification.getLong("time") // entryId is Time!
       consumeSyncEntry(id, notification)
 
       executor.submit { acknowledgeSyncEntry(address, entryId) }
@@ -98,15 +102,24 @@ class NotificationSyncService : Service() {
   private fun consumeSyncEntry(id: String, notification: JSONObject) {
     val deviceName = getDeviceName(id)
     val title = notification.getString("title")
-    val subtitle = notification.getString("subtitle")
+    val subtitle = notification.getString("text")
 
-    Log.d(TAG, "Received notification from $deviceName (title=$title, subtitle=$subtitle)")
+    Log.d(TAG, "Received notification from $deviceName (title=$title, text=$subtitle)")
+
+    notificationManager.notify(
+      Random.nextInt(),
+      NotificationCompat.Builder(this, "sync_service")
+        .setContentTitle(title)
+        .setContentText(subtitle)
+        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .build()
+    )
   }
 
   private fun getDeviceName(id: String): String = Devices.getSource(id).getString("device_name")
 
   private fun forEachSourceAddresses(consumer: (address: String) -> Unit) {
-    val sources = Devices.getClients()
+    val sources = Devices.getSources()
     val sourcesLen = sources.length()
     for (i in 0..<sourcesLen) {
       val source = sources.getJSONObject(i)
@@ -127,11 +140,11 @@ class NotificationSyncService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    startForeground()
+    createForeground()
     return START_STICKY
   }
 
-  private fun startForeground() {
+  private fun createForeground() {
     val notificationManager = getSystemService(NotificationManager::class.java)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       notificationManager.createNotificationChannel(

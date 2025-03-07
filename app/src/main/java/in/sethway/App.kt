@@ -10,18 +10,28 @@ import java.util.UUID
 class App: Application() {
 
   companion object {
-    const val PAIR_PORT = 8877
+    const val PAIR_PORT = 6681
 
-    const val SYNC_REC_PORT = 7788
-    const val SYNC_TRANS_PORT = 7781
+    const val SYNC_REC_PORT = 7782
+    const val SYNC_TRANS_PORT = 7783
 
     lateinit var ID: String
     lateinit var mmkv: MMKV
-    lateinit var SMART_UDP: SmartUDP
+    private var _SMART_UDP: SmartUDP? = null
+
+    val smartUdp get() = _SMART_UDP!!
 
     fun initMMKV(context: Context) {
       MMKV.initialize(context)
       mmkv = MMKV.defaultMMKV()
+    }
+
+    fun setupSmartUDP() {
+      _SMART_UDP = SmartUDP().create(PAIR_PORT)
+    }
+
+    fun closeSmartUdp() {
+      _SMART_UDP?.close()
     }
   }
 
@@ -35,6 +45,5 @@ class App: Application() {
     } else {
       ID = mmkv.decodeString("id")!!
     }
-    SMART_UDP = SmartUDP().create(PAIR_PORT)
   }
 }

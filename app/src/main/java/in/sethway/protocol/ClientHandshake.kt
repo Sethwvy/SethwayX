@@ -4,7 +4,7 @@ import android.content.ContentResolver
 import android.os.Handler
 import android.os.Looper
 import `in`.sethway.App
-import `in`.sethway.App.Companion.SMART_UDP
+import `in`.sethway.App.Companion.smartUdp
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -19,7 +19,7 @@ class ClientHandshake(
   private val executor = Executors.newSingleThreadExecutor()
 
   init {
-    SMART_UDP.route("handshake_response") { address, bytes ->
+    smartUdp.route("handshake_response") { address, bytes ->
       val json = JSONObject(String(bytes))
       val deviceName = json.getString("device_name")
       Devices.addSource(json)
@@ -37,7 +37,7 @@ class ClientHandshake(
       for (i in 0..<addrSize) {
         val address = InetAddress.getByName(addresses.getString(i))
         try {
-          SMART_UDP.message(
+          smartUdp.message(
             address,
             App.PAIR_PORT,
             Query.shareSelf(contentResolver).toByteArray(),
@@ -51,6 +51,6 @@ class ClientHandshake(
   }
 
   private fun close() {
-    SMART_UDP.removeRoute("handshake_response")
+    smartUdp.removeRoute("handshake_response")
   }
 }

@@ -21,7 +21,6 @@ class NotificationShareService : NotificationListenerService() {
   }
 
   private lateinit var mmkv: MMKV
-  private lateinit var backlog: EntryBacklog
   private lateinit var smartUDP: SmartUDP
 
   private lateinit var executor: ExecutorService
@@ -43,6 +42,7 @@ class NotificationShareService : NotificationListenerService() {
     }
 
     smartUDP.route("clear_backlog") { _, bytes ->
+      Log.d(TAG, "Asking for backlog")
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
       executor.submit { clearBacklog(id) }
@@ -51,13 +51,13 @@ class NotificationShareService : NotificationListenerService() {
   }
 
   private fun clearBacklog(id: String) {
-    backlog.forEachBacklog(id) { entry ->
+    EntryBacklog.forEachBacklog(id) { entry ->
       deliverTo(id, createDeliveryEntry(entry))
     }
   }
 
   private fun saveSyncAck(id: String, entryId: Long) {
-    backlog.acknowledgeDelivery(id, entryId)
+    EntryBacklog.acknowledgeDelivery(id, entryId)
 
     val deviceName = getDeviceName(id)
     Log.d(TAG, "Received sync acknowledgment from $deviceName for Id $entryId")
@@ -79,8 +79,10 @@ class NotificationShareService : NotificationListenerService() {
     val text = (extras.get("android.text") ?: return).toString()
 
     val entry = createNotificationEntry(title, text)
-    backlog.add(entry)
-    deliverToAll(createDeliveryEntry(entry))
+    EntryBacklog.add(entry)
+    executor.submit {
+      deliverToAll(createDeliveryEntry(entry))
+    }
   }
 
   /**
@@ -95,7 +97,7 @@ class NotificationShareService : NotificationListenerService() {
    * Prepare the notification entry for transmission along with some metadata
    */
   private fun createDeliveryEntry(entry: JSONObject): JSONObject = JSONObject()
-    .put("me", App.ID)
+    .put("id", App.ID)
     .put("type", "notification")
     .put("notification", entry)
 

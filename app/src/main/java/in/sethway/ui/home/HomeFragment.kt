@@ -15,7 +15,7 @@ import androidx.navigation.fragment.findNavController
 import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentHomeBinding
-import `in`.sethway.services.NotificationSyncService
+import `in`.sethway.services.sync.NotificationSyncService
 
 
 class HomeFragment : Fragment() {

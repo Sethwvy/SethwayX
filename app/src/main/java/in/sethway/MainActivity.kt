@@ -27,4 +27,9 @@ class MainActivity : AppCompatActivity() {
 
     supportFragmentManager.findFragmentById(R.id.nav_host_fragment_content_main) as NavHostFragment
   }
+
+  override fun onDestroy() {
+    super.onDestroy()
+    App.closeSmartUdp()
+  }
 }

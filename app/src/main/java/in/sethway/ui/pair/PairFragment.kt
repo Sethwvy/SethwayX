@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.fragment.findNavController
+import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentPairBinding
 
@@ -16,6 +17,11 @@ class PairFragment : Fragment() {
   private var _binding: FragmentPairBinding? = null
   private val binding get() = _binding!!
 
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    App.setupSmartUDP()
+  }
 
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
