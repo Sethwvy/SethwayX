@@ -1,11 +1,16 @@
 package `in`.sethway.services
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import com.baxolino.smartudp.SmartUDP
 import com.tencent.mmkv.MMKV
 import `in`.sethway.App
+import `in`.sethway.R
 import `in`.sethway.protocol.Devices
 import org.json.JSONObject
 import java.io.IOException
@@ -122,7 +127,29 @@ class NotificationSyncService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    startForeground()
     return START_STICKY
+  }
+
+  private fun startForeground() {
+    val notificationManager = getSystemService(NotificationManager::class.java)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      notificationManager.createNotificationChannel(
+        NotificationChannel(
+          "sync_service",
+          "Notification Sync Service",
+          NotificationManager.IMPORTANCE_HIGH
+        )
+      )
+    }
+    startForeground(
+      1,
+      NotificationCompat.Builder(this, "sync_service")
+        .setContentTitle("Sethway Sync")
+        .setContentText("Lookup for new messages")
+        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .build()
+    )
   }
 
   override fun onBind(intent: Intent?) = null

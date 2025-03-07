@@ -41,6 +41,7 @@ class ReceiveFragment : Fragment() {
         Toast.LENGTH_LONG
       ).show()
       App.mmkv.encode("welcome", true)
+      App.mmkv.encode("receiver", true)
       findNavController().navigate(R.id.receve_to_home)
     }
     qrAnalysis = QrImageAnalysis(requireContext()) { qrContent: String ->
