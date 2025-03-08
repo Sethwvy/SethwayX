@@ -10,6 +10,9 @@ import java.util.UUID
 class App: Application() {
 
   companion object {
+    const val BRIDGE_PORT = 8844
+    const val BRIDGE_IP = "192.168.0.102"
+
     const val PAIR_PORT = 6681
 
     const val SYNC_REC_PORT = 7782

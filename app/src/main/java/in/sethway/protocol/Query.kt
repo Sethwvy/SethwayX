@@ -10,13 +10,19 @@ import java.net.NetworkInterface
 
 object Query {
 
-  fun shareSelf(resolver: ContentResolver) = JSONObject()
+  fun shareSelf(resolver: ContentResolver): String = JSONObject()
     .put("id", App.ID)
     .put("device_name", Settings.Global.getString(resolver, Settings.Global.DEVICE_NAME))
     .put("addresses", addresses())
     .toString()
 
-  private fun addresses(): JSONArray {
+  fun pingPayload(): ByteArray = JSONObject()
+    .put("me", App.ID)
+    .put("addresses", addresses())
+    .toString()
+    .toByteArray()
+
+  fun addresses(): JSONArray {
     val addresses = ArrayList<Inet6Address>()
     NetworkInterface.getNetworkInterfaces().iterator().forEach { i ->
       i.inetAddresses.iterator().forEach { a ->

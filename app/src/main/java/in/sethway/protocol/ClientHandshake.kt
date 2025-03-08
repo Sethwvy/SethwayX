@@ -34,13 +34,14 @@ class ClientHandshake(
   fun connect(addresses: JSONArray) {
     executor.submit {
       val addrSize = addresses.length()
+      val payload = Query.shareSelf(contentResolver).toByteArray()
       for (i in 0..<addrSize) {
         val address = InetAddress.getByName(addresses.getString(i))
         try {
           smartUdp.message(
             address,
             App.PAIR_PORT,
-            Query.shareSelf(contentResolver).toByteArray(),
+            payload,
             "handshake"
           )
         } catch (e: IOException) {

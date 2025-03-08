@@ -7,12 +7,15 @@ import com.baxolino.smartudp.SmartUDP
 import com.tencent.mmkv.MMKV
 import `in`.sethway.App
 import `in`.sethway.protocol.Devices
+import `in`.sethway.protocol.Query
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.InetAddress
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 class NotificationShareService : NotificationListenerService() {
 
@@ -24,6 +27,7 @@ class NotificationShareService : NotificationListenerService() {
   private lateinit var smartUDP: SmartUDP
 
   private lateinit var executor: ExecutorService
+  private lateinit var periodicExecutor: ScheduledExecutorService
 
   override fun onCreate() {
     super.onCreate()
@@ -32,6 +36,7 @@ class NotificationShareService : NotificationListenerService() {
     mmkv = MMKV.mmkvWithID("sync")
     smartUDP = SmartUDP().create(App.SYNC_TRANS_PORT)
     executor = Executors.newSingleThreadExecutor()
+    periodicExecutor = Executors.newScheduledThreadPool(1)
 
     smartUDP.route("sync_direct_ack") { _, bytes ->
       val json = JSONObject(String(bytes))
@@ -41,12 +46,46 @@ class NotificationShareService : NotificationListenerService() {
       null
     }
 
-    smartUDP.route("clear_backlog") { _, bytes ->
-      Log.d(TAG, "Asking for backlog")
+    smartUDP.route("ping") { _, bytes ->
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
-      executor.submit { clearBacklog(id) }
+      val addresses = json.getJSONArray("addresses")
+      executor.submit {
+        updateIpAddresses(id, addresses)
+        clearBacklog(id)
+      }
       null
+    }
+
+    periodicExecutor.scheduleWithFixedDelay({
+      periodicPing()
+    }, 0, 5, TimeUnit.SECONDS)
+  }
+
+  private fun periodicPing() {
+    val payload = Query.pingPayload()
+    forEachClientAddress { address: String ->
+      try {
+        smartUDP.message(
+          InetAddress.getByName(address),
+          App.SYNC_TRANS_PORT,
+          payload,
+          "ping"
+        )
+      } catch (e: IOException) {
+        println("I/O periodicPing() ${e.javaClass.simpleName} ${e.message}")
+      }
+    }
+    // pinging the server
+    try {
+      smartUDP.message(
+        InetAddress.getByName(App.BRIDGE_IP),
+        App.BRIDGE_PORT,
+        payload,
+        "ping"
+      )
+    } catch (e: IOException) {
+      println("I/O server! periodicPing() ${e.javaClass.simpleName} ${e.message}")
     }
   }
 
@@ -54,6 +93,12 @@ class NotificationShareService : NotificationListenerService() {
     EntryBacklog.forEachBacklog(id) { entry ->
       deliverTo(id, createDeliveryEntry(entry))
     }
+  }
+
+  private fun updateIpAddresses(id: String, addresses: JSONArray) {
+    val client = Devices.getClient(id)
+    client.put("addresses", addresses)
+    Devices.addClient(client)
   }
 
   private fun saveSyncAck(id: String, entryId: Long) {
@@ -71,6 +116,8 @@ class NotificationShareService : NotificationListenerService() {
   override fun onDestroy() {
     super.onDestroy()
     smartUDP.close()
+    executor.shutdownNow()
+    periodicExecutor.shutdownNow()
   }
 
   override fun onNotificationPosted(sbn: StatusBarNotification) {

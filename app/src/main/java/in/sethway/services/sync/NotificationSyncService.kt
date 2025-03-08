@@ -12,10 +12,14 @@ import com.tencent.mmkv.MMKV
 import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.protocol.Devices
+import `in`.sethway.protocol.Query
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.InetAddress
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -30,8 +34,8 @@ class NotificationSyncService : Service() {
 
   private lateinit var notificationManager: NotificationManager
 
-  private val executor = Executors.newSingleThreadExecutor()
-  private val periodicExecutor = Executors.newScheduledThreadPool(1)
+  private lateinit var executor: ExecutorService
+  private lateinit var periodicExecutor: ScheduledExecutorService
 
   override fun onCreate() {
     super.onCreate()
@@ -39,11 +43,17 @@ class NotificationSyncService : Service() {
     EntryLog.init()
     mmkv = MMKV.mmkvWithID("sync")
     smartUDP = SmartUDP().create(App.SYNC_REC_PORT)
+    executor = Executors.newSingleThreadExecutor()
+    periodicExecutor = Executors.newScheduledThreadPool(1)
+
     notificationManager = getSystemService(NotificationManager::class.java)
 
     smartUDP.route("sync_direct") { address, bytes ->
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
+      val addresses = json.getJSONArray("addresses")
+
+      updateIpAddresses(id, addresses)
 
       val notification = json.getJSONObject("notification")
       val entryId = notification.getLong("time") // entryId is Time!
@@ -56,31 +66,54 @@ class NotificationSyncService : Service() {
       null
     }
 
+    smartUDP.route("ping") { address, bytes ->
+      val json = JSONObject(String(bytes))
+      val id = json.getString("id")
+      val addresses = json.getJSONArray("addresses")
+
+      updateIpAddresses(id, addresses)
+      null
+    }
+
     periodicExecutor.scheduleWithFixedDelay({
-      clearBacklog()
+      periodicPing()
     }, 0, 5, TimeUnit.SECONDS)
   }
 
   /**
    * Attempt to clear any possible backlog with the sources
    */
-  private fun clearBacklog() {
-    val payload = JSONObject()
-      .put("me", App.ID)
-      .toString()
-      .toByteArray()
+  private fun periodicPing() {
+    val payload = Query.pingPayload()
     forEachSourceAddresses { address: String ->
       try {
         smartUDP.message(
           InetAddress.getByName(address),
           App.SYNC_TRANS_PORT,
           payload,
-          "clear_backlog"
+          "ping"
         )
       } catch (e: IOException) {
-        println("I/O clearBacklog() ${e.javaClass.simpleName} ${e.message}")
+        println("I/O periodicPing() ${e.javaClass.simpleName} ${e.message}")
       }
     }
+    // pinging the server
+    try {
+      smartUDP.message(
+        InetAddress.getByName(App.BRIDGE_IP),
+        App.BRIDGE_PORT,
+        payload,
+        "ping"
+      )
+    } catch (e: IOException) {
+      println("I/O server! periodicPing() ${e.javaClass.simpleName} ${e.message}")
+    }
+  }
+
+  private fun updateIpAddresses(id: String, addresses: JSONArray) {
+    val source = Devices.getSource(id)
+    source.put("addresses", addresses)
+    Devices.addSource(source)
   }
 
   private fun acknowledgeSyncEntry(address: InetAddress, entryId: Long) {
