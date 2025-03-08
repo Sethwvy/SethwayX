@@ -10,6 +10,8 @@ import `in`.sethway.R
 import `in`.sethway.adapters.DevicesAdapter
 import `in`.sethway.databinding.FragmentLinkedDevicesBinding
 import `in`.sethway.protocol.Devices
+import org.json.JSONArray
+import org.json.JSONObject
 
 class LinkedDevices : Fragment() {
 
@@ -36,7 +38,7 @@ class LinkedDevices : Fragment() {
         clientsHint.setText(R.string.hint_no_devices)
       } else {
         clientsHint.setText(R.string.hint_yes_devices)
-        listClients.adapter = DevicesAdapter(clients)
+        listClients.adapter = DevicesAdapter(clients.toJSONArray())
       }
 
       val sources = Devices.getSources()
@@ -44,11 +46,13 @@ class LinkedDevices : Fragment() {
         broadcastersHint.setText(R.string.hint_no_devices)
       } else {
         broadcastersHint.setText(R.string.hint_yes_devices)
-        listBroadcasters.adapter = DevicesAdapter(sources)
+        listBroadcasters.adapter = DevicesAdapter(sources.toJSONArray())
       }
     }
+  }
 
-
+  private fun JSONObject.toJSONArray(): JSONArray {
+    return this.toJSONArray(this.names()) ?: JSONArray()
   }
 
   override fun onDestroyView() {

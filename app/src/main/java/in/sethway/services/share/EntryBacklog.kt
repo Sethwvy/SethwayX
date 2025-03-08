@@ -52,9 +52,8 @@ object EntryBacklog {
     // an Object is more suited than Array, since it can be used as a map
     val clientIds = JSONObject()
 
-    val clientsLen = clients.length()
-    for (i in 0..<clientsLen) {
-      val client = clients.getJSONObject(i)
+    for (key in clients.keys()) {
+      val client = clients.getJSONObject(key)
       clientIds.put(client.getString("id"), "")
     }
 
