@@ -13,6 +13,7 @@ import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.protocol.Devices
 import `in`.sethway.protocol.Query
+import `in`.sethway.services.SyncConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -40,6 +41,7 @@ class NotificationSyncService : Service() {
   override fun onCreate() {
     super.onCreate()
     App.initMMKV(this)
+    Devices.init()
     EntryLog.init()
     mmkv = MMKV.mmkvWithID("sync")
     smartUDP = SmartUDP().create(App.SYNC_REC_PORT)
@@ -53,7 +55,7 @@ class NotificationSyncService : Service() {
       val id = json.getString("id")
       val addresses = json.getJSONArray("addresses")
 
-      updateIpAddresses(id, addresses)
+      updateSourceAddresses(id, addresses)
 
       val notification = json.getJSONObject("notification")
       val entryId = notification.getLong("time") // entryId is Time!
@@ -71,12 +73,23 @@ class NotificationSyncService : Service() {
       val id = json.getString("id")
       val addresses = json.getJSONArray("addresses")
 
-      updateIpAddresses(id, addresses)
+      updateSourceAddresses(id, addresses)
+      null
+    }
+
+    // The server found the IP addresses of the Source that got lost
+    smartUDP.route("device_found") { _, bytes ->
+      val json = JSONObject(String(bytes))
+      val whom = json.getString("whom")
+      val addresses = json.getJSONArray("addresses")
+      updateSourceAddresses(whom, addresses)
+      Log.d(TAG, "Updated source addresses with server help")
       null
     }
 
     periodicExecutor.scheduleWithFixedDelay({
       periodicPing()
+      findSources()
     }, 0, 5, TimeUnit.SECONDS)
   }
 
@@ -110,9 +123,40 @@ class NotificationSyncService : Service() {
     }
   }
 
-  private fun updateIpAddresses(id: String, addresses: JSONArray) {
+  private fun findSources() {
+    val sources = Devices.getSources()
+    for (key in sources.keys()) {
+      val client = sources.getJSONObject(key)
+      val addressUpdatedTime = client.getLong("address_updated_time")
+      if (System.currentTimeMillis() - addressUpdatedTime >= SyncConfig.MAX_PERMITTED_TIME_NOT_SEEN) {
+        // we need to ask the server to give us Client's new IP address set
+        requestUpdatedIpOfSource(client.getString("id"))
+      }
+    }
+  }
+
+  private fun requestUpdatedIpOfSource(sourceId: String) {
+    val payload = JSONObject()
+      .put("whom", sourceId)
+      .put("reply_port", App.SYNC_TRANS_PORT)
+      .toString()
+      .toByteArray()
+    try {
+      smartUDP.message(
+        InetAddress.getByName(App.BRIDGE_IP),
+        App.BRIDGE_PORT,
+        payload,
+        "find"
+      )
+    } catch (e: IOException) {
+      println("I/O server! requestUpdatedIpOfSource() ${e.javaClass.simpleName} ${e.message}")
+    }
+  }
+
+  private fun updateSourceAddresses(id: String, addresses: JSONArray) {
     val source = Devices.getSource(id)
     source.put("addresses", addresses)
+    source.put("address_updated_time", System.currentTimeMillis())
     Devices.addSource(source)
   }
 
@@ -156,9 +200,8 @@ class NotificationSyncService : Service() {
 
   private fun forEachSourceAddresses(consumer: (address: String) -> Unit) {
     val sources = Devices.getSources()
-    val sourcesLen = sources.length()
-    for (i in 0..<sourcesLen) {
-      val source = sources.getJSONObject(i)
+    for (key in sources.keys()) {
+      val source = sources.getJSONObject(key)
       val addresses = source.getJSONArray("addresses")
       val addrLen = addresses.length()
       for (j in 0..<addrLen) {

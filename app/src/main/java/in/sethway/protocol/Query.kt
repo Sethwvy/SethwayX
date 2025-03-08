@@ -14,6 +14,7 @@ object Query {
     .put("id", App.ID)
     .put("device_name", Settings.Global.getString(resolver, Settings.Global.DEVICE_NAME))
     .put("addresses", addresses())
+    .put("address_updated_time", System.currentTimeMillis())
     .toString()
 
   fun pingPayload(): ByteArray = JSONObject()

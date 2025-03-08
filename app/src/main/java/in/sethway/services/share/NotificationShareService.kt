@@ -8,6 +8,7 @@ import com.tencent.mmkv.MMKV
 import `in`.sethway.App
 import `in`.sethway.protocol.Devices
 import `in`.sethway.protocol.Query
+import `in`.sethway.services.SyncConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -32,6 +33,7 @@ class NotificationShareService : NotificationListenerService() {
   override fun onCreate() {
     super.onCreate()
     App.initMMKV(this)
+    Devices.init()
     EntryBacklog.init()
     mmkv = MMKV.mmkvWithID("sync")
     smartUDP = SmartUDP().create(App.SYNC_TRANS_PORT)
@@ -51,14 +53,25 @@ class NotificationShareService : NotificationListenerService() {
       val id = json.getString("id")
       val addresses = json.getJSONArray("addresses")
       executor.submit {
-        updateIpAddresses(id, addresses)
+        updateClientAddresses(id, addresses)
         clearBacklog(id)
       }
       null
     }
 
+    // The server found the IP addresses of the Client that got lost
+    smartUDP.route("device_found") { _, bytes ->
+      val json = JSONObject(String(bytes))
+      val whom = json.getString("whom")
+      val addresses = json.getJSONArray("addresses")
+      updateClientAddresses(whom, addresses)
+      Log.d(TAG, "Updated client addresses with server help")
+      null
+    }
+
     periodicExecutor.scheduleWithFixedDelay({
       periodicPing()
+      findClients()
     }, 0, 5, TimeUnit.SECONDS)
   }
 
@@ -68,7 +81,7 @@ class NotificationShareService : NotificationListenerService() {
       try {
         smartUDP.message(
           InetAddress.getByName(address),
-          App.SYNC_TRANS_PORT,
+          App.SYNC_REC_PORT,
           payload,
           "ping"
         )
@@ -89,15 +102,51 @@ class NotificationShareService : NotificationListenerService() {
     }
   }
 
+  /**
+   * Periodically called to query new IP addresses of the clients
+   * if they are not recently seen
+   */
+
+  private fun findClients() {
+    val clients = Devices.getClients()
+    for (key in clients.keys()) {
+      val client = clients.getJSONObject(key)
+      val addressUpdatedTime = client.getLong("address_updated_time")
+      if (System.currentTimeMillis() - addressUpdatedTime >= SyncConfig.MAX_PERMITTED_TIME_NOT_SEEN) {
+        // we need to ask the server to give us Client's new IP address set
+        requestUpdatedIpOfClient(client.getString("id"))
+      }
+    }
+  }
+
+  private fun requestUpdatedIpOfClient(clientId: String) {
+    val payload = JSONObject()
+      .put("whom", clientId)
+      .put("reply_port", App.SYNC_TRANS_PORT)
+      .toString()
+      .toByteArray()
+    try {
+      smartUDP.message(
+        InetAddress.getByName(App.BRIDGE_IP),
+        App.BRIDGE_PORT,
+        payload,
+        "find"
+      )
+    } catch (e: IOException) {
+      println("I/O server! requestUpdatedIpOfClient() ${e.javaClass.simpleName} ${e.message}")
+    }
+  }
+
   private fun clearBacklog(id: String) {
     EntryBacklog.forEachBacklog(id) { entry ->
       deliverTo(id, createDeliveryEntry(entry))
     }
   }
 
-  private fun updateIpAddresses(id: String, addresses: JSONArray) {
+  private fun updateClientAddresses(id: String, addresses: JSONArray) {
     val client = Devices.getClient(id)
     client.put("addresses", addresses)
+    client.put("address_updated_time", System.currentTimeMillis())
     Devices.addClient(client)
   }
 
@@ -182,9 +231,8 @@ class NotificationShareService : NotificationListenerService() {
 
   private fun forEachClientAddress(consumer: (address: String) -> Unit) {
     val clients = Devices.getClients()
-    val clientsLen = clients.length()
-    for (i in 0..<clientsLen) {
-      val client = clients.getJSONObject(i)
+    for (key in clients.keys()) {
+      val client = clients.getJSONObject(key)
       val addresses = client.getJSONArray("addresses")
       val addrLen = addresses.length()
       for (j in 0..<addrLen) {

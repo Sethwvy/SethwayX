@@ -15,7 +15,6 @@ class ServerHandshake(
   init {
     smartUdp.route("handshake") { address, bytes ->
       val json = JSONObject(String(bytes))
-
       val deviceName = json.getString("device_name")
 
       Devices.addClient(json)

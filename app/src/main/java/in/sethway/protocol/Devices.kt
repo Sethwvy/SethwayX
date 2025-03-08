@@ -1,10 +1,15 @@
 package `in`.sethway.protocol
 
-import `in`.sethway.App
-import org.json.JSONArray
+import com.tencent.mmkv.MMKV
 import org.json.JSONObject
 
 object Devices {
+
+  private lateinit var mmkv: MMKV
+
+  fun init() {
+    mmkv = MMKV.mmkvWithID("devices")
+  }
 
   fun addClient(entry: JSONObject) {
     addEntry("clients", entry.getString("id"), entry)
@@ -14,24 +19,18 @@ object Devices {
     addEntry("sources", entry.getString("id"), entry)
   }
 
-  private fun addEntry(name: String, key: String, entry: JSONObject) {
+  private fun addEntry(name: String, key: String, entry: Any) {
     val entries = getObject(name)
     entries.put(key, entry)
-    App.mmkv.encode(name, entries.toString())
+    mmkv.encode(name, entries.toString())
   }
 
   fun getClient(id: String): JSONObject = getObject("clients").getJSONObject(id)
   fun getSource(id: String): JSONObject = getObject("sources").getJSONObject(id)
 
-
-  fun getClients() = getEntries("clients")
-  fun getSources() = getEntries("sources")
-
-  private fun getEntries(name: String): JSONArray {
-    val entries = getObject(name)
-    return entries.toJSONArray(entries.names()) ?: JSONArray()
-  }
+  fun getClients() = getObject("clients")
+  fun getSources() = getObject("sources")
 
   private fun getObject(name: String): JSONObject =
-    JSONObject(App.mmkv.decodeString(name, "{}")!!)
+    JSONObject(mmkv.decodeString(name, "{}")!!)
 }

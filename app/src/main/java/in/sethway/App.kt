@@ -5,6 +5,7 @@ import android.content.Context
 import com.baxolino.smartudp.SmartUDP
 import com.google.android.material.color.DynamicColors
 import com.tencent.mmkv.MMKV
+import `in`.sethway.protocol.Devices
 import java.util.UUID
 
 class App: Application() {
@@ -42,6 +43,7 @@ class App: Application() {
     super.onCreate()
     DynamicColors.applyToActivitiesIfAvailable(this)
     initMMKV(this)
+    Devices.init()
     if (!mmkv.containsKey("id")) {
       ID = UUID.randomUUID().toString()
       mmkv.encode("id", ID)
