@@ -12,8 +12,9 @@ class App: Application() {
 
   companion object {
     const val BRIDGE_PORT = 8844
-    const val BRIDGE_IPV6 = "2a01:4f9:3081:399c::4"
-    const val BRIDGE_IPV4 = "37.27.51.34"
+
+    const val BRIDGE_PRIMARY_ADDR = "2a01:4f9:3081:399c::4"
+    const val BRIDGE_SECONDARY_ADDR = "37.27.51.34"
 
     const val PAIR_PORT = 6681
 

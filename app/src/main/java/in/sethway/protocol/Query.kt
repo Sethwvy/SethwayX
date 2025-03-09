@@ -10,6 +10,9 @@ import java.net.NetworkInterface
 
 object Query {
 
+  fun deviceName(resolver: ContentResolver): String =
+    Settings.Global.getString(resolver, Settings.Global.DEVICE_NAME)
+
   fun shareSelf(resolver: ContentResolver): String = JSONObject()
     .put("id", App.ID)
     .put("device_name", Settings.Global.getString(resolver, Settings.Global.DEVICE_NAME))

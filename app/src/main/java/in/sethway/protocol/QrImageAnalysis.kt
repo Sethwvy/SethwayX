@@ -1,6 +1,7 @@
 package `in`.sethway.protocol
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
@@ -8,10 +9,12 @@ import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import java.io.IOException
 
 class QrImageAnalysis(
   private val context: Context, private val callback: (qrContent: String) -> Unit
@@ -30,14 +33,20 @@ class QrImageAnalysis(
   @OptIn(ExperimentalGetImage::class)
   override fun analyze(p: ImageProxy) {
     val iImage = InputImage.fromMediaImage(p.image!!, p.imageInfo.rotationDegrees)
-    scanner.process(iImage).addOnSuccessListener { barcodes ->
+    analyseImage(iImage) {
+      p.close()
+    }
+  }
+
+  private fun analyseImage(image: InputImage, onComplete: () -> Unit) {
+    scanner.process(image).addOnSuccessListener { barcodes ->
       handleBarcodeResult(barcodes)
     }.addOnFailureListener {
       Handler(Looper.getMainLooper()).post {
         Toast.makeText(context, "QR Scanning Failed: ${it.message}", Toast.LENGTH_LONG).show()
       }
     }.addOnCompleteListener {
-      p.close()
+      onComplete()
     }
   }
 
@@ -49,6 +58,22 @@ class QrImageAnalysis(
       val qrContent = barcodes[0].rawValue!!
       callback(qrContent)
     }
+  }
+
+  fun analyseFromUri(uri: Uri) {
+    val image: InputImage
+    try {
+      image = InputImage.fromFilePath(context, uri)
+    } catch (e: IOException) {
+      e.printStackTrace()
+      Toast.makeText(
+        context,
+        "Could not open picked image (${e.message})", Toast.LENGTH_LONG
+      ).show()
+      return
+    }
+    lastCallbackInvoked = 0
+    analyseImage(image) {}
   }
 
 

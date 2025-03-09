@@ -7,7 +7,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -65,11 +67,19 @@ class ReceiveFragment : Fragment() {
         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
       }
     }
+    binding.pickQrImage.setOnClickListener {
+      mediaPick.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+    }
     if (!updateCameraLayout()) {
       // camera not allowed
       cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
     }
   }
+
+  private val mediaPick =
+    registerForActivityResult(PickVisualMedia()) { uri ->
+      uri?.let { qrAnalysis.analyseFromUri(it) }
+    }
 
   private fun updateCameraLayout(): Boolean {
     binding.apply {

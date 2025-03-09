@@ -15,15 +15,16 @@
         android:layout_marginEnd="16dp">
 
         <TextView
-            android:textColor="?attr/colorPrimary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start|center_vertical"
             android:text="Connect"
+            android:textColor="?attr/colorPrimary"
             android:textSize="30sp"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/pickQrImage"
             style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -82,15 +83,16 @@
         android:layout_gravity="center"
         android:layout_marginTop="32dp"
         android:text="OR"
-        android:textColor="?attr/colorSecondary" />
+        android:textColor="?attr/colorSecondary"
+        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="wrap_content"
-
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="32sp"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:visibility="gone">
 
         <com.google.android.material.textfield.TextInputLayout
             style="?attr/textInputFilledStyle"
@@ -118,7 +120,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="64dp"
-        android:text="Scan the QR code or enter the pairing code"
+        android:text="Scan the QR code from the other device"
         android:textAlignment="center" />
 
 </LinearLayout>

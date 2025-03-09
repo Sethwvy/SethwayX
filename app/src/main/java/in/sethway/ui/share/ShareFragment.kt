@@ -1,5 +1,6 @@
 package `in`.sethway.ui.share
 
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -40,7 +41,7 @@ class ShareFragment : Fragment() {
     override fun run() {
       if (updaterRunning.get()) {
         try {
-          displayQr(Query.shareSelf(requireContext().contentResolver))
+          displayQrDrawable(prepareQrDrawable(Query.shareSelf(requireContext().contentResolver)))
           Handler(Looper.getMainLooper()).postDelayed(this, 5000)
         } catch (ignored: IllegalStateException) {
           // can be safely ignored, happens when we call requireContext()
@@ -83,14 +84,32 @@ class ShareFragment : Fragment() {
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
-    displayQr(Query.shareSelf(requireContext().contentResolver))
 
-    displayQr(Query.shareSelf(requireContext().contentResolver))
+    binding.btnShareQR.setOnClickListener {
+      val contentResolver = requireContext().contentResolver
+      ShareUtils.share(
+        requireContext(),
+        prepareQrDrawable(Query.shareSelf(contentResolver)),
+        "Connect to ${Query.deviceName(contentResolver)} by scanning this QR code"
+      )
+    }
+
+    val drawable = prepareQrDrawable(Query.shareSelf(requireContext().contentResolver))
+    displayQrDrawable(drawable)
+
     Handler(Looper.getMainLooper()).postDelayed(qrUpdater, 5000)
   }
 
-  private fun displayQr(text: String) {
-    val qrDrawable = QrCodeDrawable(
+  private fun displayQrDrawable(drawable: Drawable) {
+    binding.apply {
+      imageQR.visibility = View.VISIBLE
+      imageQR.background = drawable
+      qrProgress.visibility = View.GONE
+    }
+  }
+
+  private fun prepareQrDrawable(text: String): Drawable {
+    return QrCodeDrawable(
       QrData.Text(text),
       QrVectorOptions.Builder()
         .setColors(
@@ -109,11 +128,6 @@ class ShareFragment : Fragment() {
         .setErrorCorrectionLevel(QrErrorCorrectionLevel.Low)
         .build()
     )
-    binding.apply {
-      imageQR.visibility = View.VISIBLE
-      imageQR.background = qrDrawable
-      qrProgress.visibility = View.GONE
-    }
   }
 
   private fun getAttr(attrId: Int): Int {
