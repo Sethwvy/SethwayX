@@ -3,6 +3,7 @@ package `in`.sethway
 import android.app.Application
 import android.content.Context
 import com.baxolino.smartudp.SmartUDP
+import com.github.f4b6a3.uuid.UuidCreator
 import com.google.android.material.color.DynamicColors
 import com.tencent.mmkv.MMKV
 import `in`.sethway.protocol.Devices
@@ -49,7 +50,7 @@ class App: Application() {
     initMMKV(this)
     Devices.init()
     if (!mmkv.containsKey("id")) {
-      ID = UUID.randomUUID().toString()
+      ID = UuidCreator.getTimeOrderedEpoch().toString()
       mmkv.encode("id", ID)
     } else {
       ID = mmkv.decodeString("id")!!
