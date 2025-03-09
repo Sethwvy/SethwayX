@@ -1,6 +1,7 @@
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.android)
+  id("io.sentry.android.gradle") version ("5.3.0")
 }
 
 android {
