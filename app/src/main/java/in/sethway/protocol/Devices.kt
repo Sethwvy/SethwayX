@@ -39,6 +39,9 @@ object Devices {
     mmkv.encode(name, entries.toString())
   }
 
+  fun clientExists(id: String): Boolean = getObject("clients").has(id)
+  fun sourceExists(id: String): Boolean = getObject("sources").has(id)
+
   fun getClient(id: String): JSONObject = getObject("clients").getJSONObject(id)
   fun getSource(id: String): JSONObject = getObject("sources").getJSONObject(id)
 

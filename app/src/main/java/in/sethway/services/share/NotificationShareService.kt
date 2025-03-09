@@ -43,19 +43,22 @@ class NotificationShareService : NotificationListenerService() {
     smartUDP.route("sync_direct_ack") { _, bytes ->
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
-      val entryId = json.getLong("entryId")
-      saveSyncAck(id, entryId)
+      if (Devices.clientExists(id)) {
+        val entryId = json.getLong("entryId")
+        saveSyncAck(id, entryId)
+      }
       null
     }
 
     smartUDP.route("ping") { _, bytes ->
       val json = JSONObject(String(bytes))
-      println("Received ping $json")
       val id = json.getString("id")
-      val addresses = json.getJSONArray("addresses")
-      executor.submit {
-        updateClientAddresses(id, addresses)
-        clearBacklog(id)
+      if (Devices.clientExists(id)) {
+        val addresses = json.getJSONArray("addresses")
+        executor.submit {
+          updateClientAddresses(id, addresses)
+          clearBacklog(id)
+        }
       }
       null
     }

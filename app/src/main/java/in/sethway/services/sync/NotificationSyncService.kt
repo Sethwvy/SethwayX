@@ -53,18 +53,19 @@ class NotificationSyncService : Service() {
     smartUDP.route("sync_direct") { address, bytes ->
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
-      println("Received sync direct $id")
-      val addresses = json.getJSONArray("addresses")
+      if (Devices.sourceExists(id)) {
+        val addresses = json.getJSONArray("addresses")
 
-      updateSourceAddresses(id, addresses)
+        updateSourceAddresses(id, addresses)
 
-      val notification = json.getJSONObject("notification")
-      val entryId = notification.getLong("time") // entryId is Time!
+        val notification = json.getJSONObject("notification")
+        val entryId = notification.getLong("time") // entryId is Time!
 
-      if (!EntryLog.existEntry(entryId)) {
-        EntryLog.addEntry(entryId, notification)
-        consumeSyncEntry(id, notification)
-        executor.submit { acknowledgeSyncEntry(address, entryId) }
+        if (!EntryLog.existEntry(entryId)) {
+          EntryLog.addEntry(entryId, notification)
+          consumeSyncEntry(id, notification)
+          executor.submit { acknowledgeSyncEntry(address, entryId) }
+        }
       }
       null
     }
@@ -72,9 +73,10 @@ class NotificationSyncService : Service() {
     smartUDP.route("ping") { address, bytes ->
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
-      val addresses = json.getJSONArray("addresses")
-
-      updateSourceAddresses(id, addresses)
+      if (Devices.sourceExists(id)) {
+        val addresses = json.getJSONArray("addresses")
+        updateSourceAddresses(id, addresses)
+      }
       null
     }
 
