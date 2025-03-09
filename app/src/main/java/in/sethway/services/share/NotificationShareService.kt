@@ -8,7 +8,7 @@ import com.tencent.mmkv.MMKV
 import `in`.sethway.App
 import `in`.sethway.protocol.Devices
 import `in`.sethway.protocol.Query
-import `in`.sethway.services.SyncConfig
+import `in`.sethway.services.SyncApp
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -50,6 +50,7 @@ class NotificationShareService : NotificationListenerService() {
 
     smartUDP.route("ping") { _, bytes ->
       val json = JSONObject(String(bytes))
+      println("Received ping $json")
       val id = json.getString("id")
       val addresses = json.getJSONArray("addresses")
       executor.submit {
@@ -90,15 +91,17 @@ class NotificationShareService : NotificationListenerService() {
       }
     }
     // pinging the server
-    try {
-      smartUDP.message(
-        InetAddress.getByName(App.BRIDGE_IP),
-        App.BRIDGE_PORT,
-        payload,
-        "ping"
-      )
-    } catch (e: IOException) {
-      println("I/O server! periodicPing() ${e.javaClass.simpleName} ${e.message}")
+    SyncApp.forAllServerDestination { address: String ->
+      try {
+        smartUDP.message(
+          InetAddress.getByName(address),
+          App.BRIDGE_PORT,
+          payload,
+          "ping"
+        )
+      } catch (e: IOException) {
+        println("I/O server! periodicPing() ${e.javaClass.simpleName} ${e.message}")
+      }
     }
   }
 
@@ -112,7 +115,7 @@ class NotificationShareService : NotificationListenerService() {
     for (key in clients.keys()) {
       val client = clients.getJSONObject(key)
       val addressUpdatedTime = client.getLong("address_updated_time")
-      if (System.currentTimeMillis() - addressUpdatedTime >= SyncConfig.MAX_PERMITTED_TIME_NOT_SEEN) {
+      if (System.currentTimeMillis() - addressUpdatedTime >= SyncApp.MAX_PERMITTED_TIME_NOT_SEEN) {
         // we need to ask the server to give us Client's new IP address set
         requestUpdatedIpOfClient(client.getString("id"))
       }
@@ -125,15 +128,17 @@ class NotificationShareService : NotificationListenerService() {
       .put("reply_port", App.SYNC_TRANS_PORT)
       .toString()
       .toByteArray()
-    try {
-      smartUDP.message(
-        InetAddress.getByName(App.BRIDGE_IP),
-        App.BRIDGE_PORT,
-        payload,
-        "find"
-      )
-    } catch (e: IOException) {
-      println("I/O server! requestUpdatedIpOfClient() ${e.javaClass.simpleName} ${e.message}")
+    SyncApp.forAllServerDestination { address: String ->
+      try {
+        smartUDP.message(
+          InetAddress.getByName(address),
+          App.BRIDGE_PORT,
+          payload,
+          "find"
+        )
+      } catch (e: IOException) {
+        println("I/O server! requestUpdatedIpOfClient() ${e.javaClass.simpleName} ${e.message}")
+      }
     }
   }
 
@@ -196,10 +201,12 @@ class NotificationShareService : NotificationListenerService() {
     .put("id", App.ID)
     .put("type", "notification")
     .put("notification", entry)
+    .put("addresses", Query.addresses())
 
   private fun deliverToAll(entry: JSONObject) {
     val payload = entry.toString().toByteArray()
     forEachClientAddress { address: String ->
+      println("Trying sync direct to $address")
       try {
         smartUDP.message(
           InetAddress.getByName(address),

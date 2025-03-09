@@ -12,7 +12,8 @@ class App: Application() {
 
   companion object {
     const val BRIDGE_PORT = 8844
-    const val BRIDGE_IP = "192.168.0.102"
+    const val BRIDGE_IPV6 = "2a01:4f9:3081:399c::4"
+    const val BRIDGE_IPV4 = "37.27.51.34"
 
     const val PAIR_PORT = 6681
 
@@ -31,7 +32,9 @@ class App: Application() {
     }
 
     fun setupSmartUDP() {
-      _SMART_UDP = SmartUDP().create(PAIR_PORT)
+      if (_SMART_UDP == null) {
+        _SMART_UDP = SmartUDP().create(PAIR_PORT)
+      }
     }
 
     fun closeSmartUdp() {

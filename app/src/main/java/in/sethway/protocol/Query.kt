@@ -18,7 +18,7 @@ object Query {
     .toString()
 
   fun pingPayload(): ByteArray = JSONObject()
-    .put("me", App.ID)
+    .put("id", App.ID)
     .put("addresses", addresses())
     .toString()
     .toByteArray()

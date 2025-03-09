@@ -46,7 +46,7 @@ dependencies {
   implementation(libs.androidx.navigation.fragment.ktx)
   implementation(libs.androidx.navigation.ui.ktx)
 
-  implementation("com.tencent:mmkv:2.1.0")
+  implementation("com.tencent:mmkv:1.3.12")
 
   implementation("androidx.camera:camera-core:1.4.1")
   implementation("androidx.camera:camera-camera2:1.4.1")
