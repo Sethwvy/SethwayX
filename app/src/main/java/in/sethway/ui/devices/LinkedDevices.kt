@@ -1,11 +1,13 @@
 package `in`.sethway.ui.devices
 
+import android.content.DialogInterface
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import `in`.sethway.R
 import `in`.sethway.adapters.DevicesAdapter
 import `in`.sethway.databinding.FragmentLinkedDevicesBinding
@@ -33,22 +35,56 @@ class LinkedDevices : Fragment() {
       listClients.layoutManager = LinearLayoutManager(requireContext())
       listBroadcasters.layoutManager = LinearLayoutManager(requireContext())
 
-      val clients = Devices.getClients()
-      if (clients.length() == 0) {
-        clientsHint.setText(R.string.hint_no_devices)
-      } else {
-        clientsHint.setText(R.string.hint_yes_devices)
-        listClients.adapter = DevicesAdapter(clients.toJSONArray())
-      }
-
-      val sources = Devices.getSources()
-      if (sources.length() == 0) {
-        broadcastersHint.setText(R.string.hint_no_devices)
-      } else {
-        broadcastersHint.setText(R.string.hint_yes_devices)
-        listBroadcasters.adapter = DevicesAdapter(sources.toJSONArray())
-      }
+      loadClients()
+      loadSources()
     }
+  }
+
+  private fun loadClients() {
+    val clients = Devices.getClients()
+    if (clients.length() == 0) {
+      binding.clientsHint.setText(R.string.hint_no_devices)
+    } else {
+      binding.clientsHint.setText(R.string.hint_yes_devices)
+      binding.listClients.adapter =
+        DevicesAdapter(clients.toJSONArray()) { deviceId: String, deviceName: String ->
+          removeDeviceDialog(deviceName, "clients") { _, _ ->
+            Devices.removeClient(deviceId)
+            loadClients()
+          }
+        }
+    }
+  }
+
+  private fun loadSources() {
+    val sources = Devices.getSources()
+    if (sources.length() == 0) {
+      binding.broadcastersHint.setText(R.string.hint_no_devices)
+    } else {
+      binding.broadcastersHint.setText(R.string.hint_yes_devices)
+      binding.listBroadcasters.adapter =
+        DevicesAdapter(sources.toJSONArray()) { deviceId: String, deviceName: String ->
+          removeDeviceDialog(deviceName, "broadcasters") { _, _ ->
+            Devices.removeSource(deviceId)
+            loadSources()
+          }
+        }
+    }
+  }
+
+  private fun removeDeviceDialog(
+    deviceName: String,
+    group: String,
+    positiveClick: DialogInterface.OnClickListener
+  ) {
+    MaterialAlertDialogBuilder(requireContext())
+      .setTitle("Remove device")
+      .setMessage("$deviceName will be removed from the $group list")
+      .setPositiveButton("Yes", positiveClick)
+      .setNegativeButton("Cancel") { dialog, _ ->
+        dialog.dismiss()
+      }
+      .show()
   }
 
   private fun JSONObject.toJSONArray(): JSONArray {

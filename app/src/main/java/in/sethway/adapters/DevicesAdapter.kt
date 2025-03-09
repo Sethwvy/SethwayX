@@ -8,7 +8,10 @@ import androidx.recyclerview.widget.RecyclerView
 import `in`.sethway.R
 import org.json.JSONArray
 
-class DevicesAdapter(private val entries: JSONArray) :
+class DevicesAdapter(
+  private val entries: JSONArray,
+  private val clickListener: (deviceId: String, deviceName: String) -> Unit
+) :
   RecyclerView.Adapter<DevicesAdapter.ElementHolder>() {
 
   class ElementHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -27,8 +30,10 @@ class DevicesAdapter(private val entries: JSONArray) :
   override fun onBindViewHolder(holder: ElementHolder, position: Int) {
     val entry = entries.getJSONObject(position)
     val deviceName = entry.getString("device_name")
-    println("Setting device name $deviceName")
     holder.deviceName.text = deviceName
+    holder.itemView.setOnClickListener {
+      clickListener(entry.getString("id"), deviceName)
+    }
   }
 
 }

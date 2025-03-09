@@ -25,6 +25,20 @@ object Devices {
     mmkv.encode(name, entries.toString())
   }
 
+  fun removeClient(key: String) {
+    removeEntry("clients", key)
+  }
+
+  fun removeSource(key: String) {
+    removeEntry("sources", key)
+  }
+
+  private fun removeEntry(name: String, key: String) {
+    val entries = getObject(name)
+    entries.remove(key)
+    mmkv.encode(name, entries.toString())
+  }
+
   fun getClient(id: String): JSONObject = getObject("clients").getJSONObject(id)
   fun getSource(id: String): JSONObject = getObject("sources").getJSONObject(id)
 
