@@ -3,7 +3,7 @@
     <style name="Base.Theme.Sethway" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-        <item name="fontFamily">@font/ubuntu</item>
+        <item name="fontFamily">@font/bricolage_grotesque</item>
     </style>
 
     <style name="Theme.Sethway" parent="Base.Theme.Sethway" />
