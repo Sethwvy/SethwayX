@@ -7,14 +7,15 @@ object EntryLog {
 
   private val mmkvMapping = HashMap<String, MMKV>()
 
-  private fun getMMKV(sourceId: String): MMKV {
-    mmkvMapping[sourceId]?.let { return it }
-    return MMKV.mmkvWithID(sourceId).also { mmkvMapping[sourceId] = it }
+  private fun getMMKV(id: String): MMKV {
+    mmkvMapping[id]?.let { return it }
+    return MMKV.mmkvWithID(id).also { mmkvMapping[id] = it }
   }
 
   fun addEntry(sourceId: String, entryId: Long, entry: JSONObject) {
-    getMMKV(sourceId).encode(entryId.toString(), entry.toString())
+    getMMKV("entries$sourceId").encode(entryId.toString(), entry.toString())
   }
 
-  fun existEntry(sourceId: String, entryId: Long): Boolean = getMMKV(sourceId).containsKey(entryId.toString())
+  fun existEntry(sourceId: String, entryId: Long): Boolean =
+    getMMKV("entries$sourceId").containsKey(entryId.toString())
 }

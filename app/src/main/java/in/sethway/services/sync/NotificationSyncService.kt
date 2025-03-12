@@ -13,8 +13,8 @@ import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.protocol.Devices
 import `in`.sethway.protocol.Query
+import `in`.sethway.services.DeviceSpace.getMMKV
 import `in`.sethway.services.SyncApp
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.InetAddress
@@ -53,9 +53,10 @@ class NotificationSyncService : Service() {
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
       if (Devices.sourceExists(id)) {
-        val addresses = json.getJSONArray("addresses")
-
-        updateSourceAddresses(id, addresses)
+        getMMKV(id).apply {
+          encode("address_updated_time", System.currentTimeMillis())
+          encode("addresses", json.getJSONArray("addresses").toString())
+        }
 
         val notification = json.getJSONObject("entry")
         val entryId = notification.getLong("time") // entryId is Time!
@@ -73,8 +74,11 @@ class NotificationSyncService : Service() {
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
       if (Devices.sourceExists(id)) {
-        val addresses = json.getJSONArray("addresses")
-        updateSourceAddresses(id, addresses)
+        getMMKV(id).apply {
+          encode("address_updated_time", System.currentTimeMillis())
+          encode("addresses", json.getJSONArray("addresses").toString())
+          encode("peers", json.getJSONArray("peers").toString())
+        }
       }
       null
     }
@@ -83,16 +87,20 @@ class NotificationSyncService : Service() {
     smartUDP.route("device_found") { _, bytes ->
       val json = JSONObject(String(bytes))
       val whom = json.getString("whom")
-      val addresses = json.getJSONArray("addresses")
-      updateSourceAddresses(whom, addresses)
-      Log.d(TAG, "Updated source addresses with server help")
+      if (Devices.sourceExists(whom)) {
+        getMMKV(whom).apply {
+          encode("address_updated_time", System.currentTimeMillis())
+          encode("addresses", json.getJSONArray("addresses").toString())
+        }
+      }
+      Log.d(TAG, "Host updated with server's help")
       null
     }
 
     periodicExecutor.scheduleWithFixedDelay({
       periodicPing()
-      findSources()
-    }, 0, 5, TimeUnit.SECONDS)
+      checkSourcesHealth()
+    }, 0, 8, TimeUnit.SECONDS)
   }
 
   /**
@@ -126,25 +134,53 @@ class NotificationSyncService : Service() {
     }
   }
 
-  private fun findSources() {
+  private fun checkSourcesHealth() {
     val sources = Devices.getSources()
-    for (key in sources.keys()) {
-      val client = sources.getJSONObject(key)
-      val addressUpdatedTime = client.getLong("address_updated_time")
-      if (System.currentTimeMillis() - addressUpdatedTime >= SyncApp.MAX_PERMITTED_TIME_NOT_SEEN) {
-        // we need to ask the server to give us Server's new IP address set
-        requestUpdatedIpOfSource(client.getString("id"))
+    for (hostId in sources.keys()) {
+      val space = getMMKV(hostId)
+      val source = sources.getJSONObject(hostId)
 
-        // Steps:
-        //  1. First we await and request IP updation
-        //  2. We will connect to our surrounding common peers
-        //
-        // We have to know at what step we are currently
+      val addressUpdatedTime = source.getLong("address_updated_time")
+      if (System.currentTimeMillis() - addressUpdatedTime >= SyncApp.MAX_PERMITTED_SOURCE_TIME_NOT_SEEN) {
+        findSources(hostId, space)
       }
     }
   }
 
-  private fun requestUpdatedIpOfSource(sourceId: String) {
+  private fun findSources(sourceId: String, space: MMKV) {
+    val currSyncStep = space.getInt("sync_step", 0)
+    when (currSyncStep) {
+      0 -> {
+        locateIpOf(sourceId)
+      }
+
+      1 -> {
+        // Here we have to lookup to peers for help
+        locatePeers()
+        space.encode("sync_step", 2)
+      }
+
+      2 -> {
+        // Hier we have to broadcast help signal to peers
+        askPeersForHelp()
+      }
+
+      else -> {
+        // This shouldn't happen
+        space.encode("sync_step", 0)
+      }
+    }
+  }
+
+  private fun locatePeers() {
+
+  }
+
+  private fun askPeersForHelp() {
+
+  }
+
+  private fun locateIpOf(sourceId: String) {
     val payload = JSONObject()
       .put("whom", sourceId)
       .put("reply_port", App.SYNC_TRANS_PORT)
@@ -159,16 +195,9 @@ class NotificationSyncService : Service() {
           "find"
         )
       } catch (e: IOException) {
-        println("I/O server! requestUpdatedIpOfSource() ${e.javaClass.simpleName} ${e.message}")
+        println("I/O server! requestUpdatedIpOf() ${e.javaClass.simpleName} ${e.message}")
       }
     }
-  }
-
-  private fun updateSourceAddresses(id: String, addresses: JSONArray) {
-    val source = Devices.getSource(id)
-    source.put("addresses", addresses)
-    source.put("address_updated_time", System.currentTimeMillis())
-    Devices.addSource(source)
   }
 
   private fun acknowledgeSyncEntry(address: InetAddress, entryId: Long) {

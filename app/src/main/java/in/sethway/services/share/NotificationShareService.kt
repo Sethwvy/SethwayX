@@ -8,6 +8,7 @@ import com.tencent.mmkv.MMKV
 import `in`.sethway.App
 import `in`.sethway.protocol.Devices
 import `in`.sethway.protocol.Query
+import `in`.sethway.services.DeviceSpace.getMMKV
 import `in`.sethway.services.SyncApp
 import org.json.JSONArray
 import org.json.JSONObject
@@ -54,10 +55,14 @@ class NotificationShareService : NotificationListenerService() {
       val json = JSONObject(String(bytes))
       val id = json.getString("id")
       if (Devices.clientExists(id)) {
-        val addresses = json.getJSONArray("addresses")
+        getMMKV(id).apply {
+          encode("address_updated_time", System.currentTimeMillis())
+          encode("addresses", json.getJSONArray("addresses").toString())
+        }
         executor.submit {
-          updateClientAddresses(id, addresses)
-          clearBacklog(id)
+          EntryBacklog.forEachBacklog(id) { entry ->
+            deliverTo(id, createDeliveryEntry(entry))
+          }
         }
       }
       null
@@ -67,15 +72,19 @@ class NotificationShareService : NotificationListenerService() {
     smartUDP.route("device_found") { _, bytes ->
       val json = JSONObject(String(bytes))
       val whom = json.getString("whom")
-      val addresses = json.getJSONArray("addresses")
-      updateClientAddresses(whom, addresses)
-      Log.d(TAG, "Updated client addresses with server help")
+      if (Devices.clientExists(whom)) {
+        getMMKV(whom).apply {
+          encode("address_updated_time", System.currentTimeMillis())
+          encode("addresses", json.getJSONArray("addresses").toString())
+        }
+      }
+      Log.d(TAG, "Client address updated with server's help")
       null
     }
 
     periodicExecutor.scheduleWithFixedDelay({
       periodicPing()
-      findClients()
+      checkClientsHealth()
     }, 0, 5, TimeUnit.SECONDS)
   }
 
@@ -116,12 +125,12 @@ class NotificationShareService : NotificationListenerService() {
    * if they are not recently seen
    */
 
-  private fun findClients() {
+  private fun checkClientsHealth() {
     val clients = Devices.getClients()
     for (key in clients.keys()) {
       val client = clients.getJSONObject(key)
       val addressUpdatedTime = client.getLong("address_updated_time")
-      if (System.currentTimeMillis() - addressUpdatedTime >= SyncApp.MAX_PERMITTED_TIME_NOT_SEEN) {
+      if (System.currentTimeMillis() - addressUpdatedTime >= SyncApp.MAX_PERMITTED_SOURCE_TIME_NOT_SEEN) {
         // we need to ask the server to give us Client's new IP address set
         requestUpdatedIpOfClient(client.getString("id"))
       }
@@ -149,18 +158,6 @@ class NotificationShareService : NotificationListenerService() {
     }
   }
 
-  private fun clearBacklog(id: String) {
-    EntryBacklog.forEachBacklog(id) { entry ->
-      deliverTo(id, createDeliveryEntry(entry))
-    }
-  }
-
-  private fun updateClientAddresses(id: String, addresses: JSONArray) {
-    val client = Devices.getClient(id)
-    client.put("addresses", addresses)
-    client.put("address_updated_time", System.currentTimeMillis())
-    Devices.addClient(client)
-  }
 
   private fun saveSyncAck(id: String, entryId: Long) {
     EntryBacklog.acknowledgeDelivery(id, entryId)
