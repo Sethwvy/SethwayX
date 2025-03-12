@@ -1,24 +1,20 @@
 package `in`.sethway.services.sync
 
 import com.tencent.mmkv.MMKV
-import org.json.JSONArray
 import org.json.JSONObject
 
 object EntryLog {
 
-  private lateinit var mmkv: MMKV
+  private val mmkvMapping = HashMap<String, MMKV>()
 
-  fun init() {
-    mmkv = MMKV.mmkvWithID("entries")
+  private fun getMMKV(sourceId: String): MMKV {
+    mmkvMapping[sourceId]?.let { return it }
+    return MMKV.mmkvWithID(sourceId).also { mmkvMapping[sourceId] = it }
   }
 
-  fun addEntry(entryId: Long, entry: JSONObject) {
-    val key = entryId.toString()
-    mmkv.encode(key, entry.toString())
-    val ids = JSONArray(mmkv.decodeString("ids", "[]"))
-    ids.put(key)
-    mmkv.encode("ids", ids.toString())
+  fun addEntry(sourceId: String, entryId: Long, entry: JSONObject) {
+    getMMKV(sourceId).encode(entryId.toString(), entry.toString())
   }
 
-  fun existEntry(entryId: Long): Boolean = mmkv.containsKey(entryId.toString())
+  fun existEntry(sourceId: String, entryId: Long): Boolean = getMMKV(sourceId).containsKey(entryId.toString())
 }

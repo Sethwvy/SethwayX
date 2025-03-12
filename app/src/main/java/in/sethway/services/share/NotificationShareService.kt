@@ -35,7 +35,7 @@ class NotificationShareService : NotificationListenerService() {
     App.initMMKV(this)
     Devices.init()
     EntryBacklog.init()
-    mmkv = MMKV.mmkvWithID("sync")
+    mmkv = MMKV.mmkvWithID("broadcast_info")
     smartUDP = SmartUDP().create(App.SYNC_TRANS_PORT)
     executor = Executors.newSingleThreadExecutor()
     periodicExecutor = Executors.newScheduledThreadPool(1)
@@ -129,6 +129,7 @@ class NotificationShareService : NotificationListenerService() {
   }
 
   private fun requestUpdatedIpOfClient(clientId: String) {
+    // TODO: we can also ask for other client's here!
     val payload = JSONObject()
       .put("whom", clientId)
       .put("reply_port", App.SYNC_TRANS_PORT)
@@ -206,7 +207,7 @@ class NotificationShareService : NotificationListenerService() {
   private fun createDeliveryEntry(entry: JSONObject): JSONObject = JSONObject()
     .put("id", App.ID)
     .put("type", "notification")
-    .put("notification", entry)
+    .put("entry", entry)
     .put("addresses", Query.addresses())
 
   private fun deliverToAll(entry: JSONObject) {

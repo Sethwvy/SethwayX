@@ -42,8 +42,7 @@ class NotificationSyncService : Service() {
     super.onCreate()
     App.initMMKV(this)
     Devices.init()
-    EntryLog.init()
-    mmkv = MMKV.mmkvWithID("sync")
+    mmkv = MMKV.mmkvWithID("sync_info")
     smartUDP = SmartUDP().create(App.SYNC_REC_PORT)
     executor = Executors.newSingleThreadExecutor()
     periodicExecutor = Executors.newScheduledThreadPool(1)
@@ -58,11 +57,11 @@ class NotificationSyncService : Service() {
 
         updateSourceAddresses(id, addresses)
 
-        val notification = json.getJSONObject("notification")
+        val notification = json.getJSONObject("entry")
         val entryId = notification.getLong("time") // entryId is Time!
 
-        if (!EntryLog.existEntry(entryId)) {
-          EntryLog.addEntry(entryId, notification)
+        if (!EntryLog.existEntry(id, entryId)) {
+          EntryLog.addEntry(id, entryId, notification)
           consumeSyncEntry(id, notification)
           executor.submit { acknowledgeSyncEntry(address, entryId) }
         }
@@ -103,7 +102,6 @@ class NotificationSyncService : Service() {
     val payload = Query.pingPayload().toString().toByteArray()
     forEachSourceAddresses { address: String ->
       try {
-        println("Sending ping to $address")
         smartUDP.message(
           InetAddress.getByName(address),
           App.SYNC_TRANS_PORT,
@@ -115,7 +113,6 @@ class NotificationSyncService : Service() {
       }
     }
     SyncApp.forAllServerDestination { address: String ->
-      println("Sending server ping to $address")
       try {
         smartUDP.message(
           InetAddress.getByName(address),
@@ -135,8 +132,14 @@ class NotificationSyncService : Service() {
       val client = sources.getJSONObject(key)
       val addressUpdatedTime = client.getLong("address_updated_time")
       if (System.currentTimeMillis() - addressUpdatedTime >= SyncApp.MAX_PERMITTED_TIME_NOT_SEEN) {
-        // we need to ask the server to give us Client's new IP address set
+        // we need to ask the server to give us Server's new IP address set
         requestUpdatedIpOfSource(client.getString("id"))
+
+        // Steps:
+        //  1. First we await and request IP updation
+        //  2. We will connect to our surrounding common peers
+        //
+        // We have to know at what step we are currently
       }
     }
   }
