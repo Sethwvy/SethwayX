@@ -100,8 +100,7 @@ class NotificationSyncService : Service() {
    * Attempt to clear any possible backlog with the sources
    */
   private fun periodicPing() {
-    println("Doing periodic ping")
-    val payload = Query.pingPayload()
+    val payload = Query.pingPayload().toString().toByteArray()
     forEachSourceAddresses { address: String ->
       try {
         println("Sending ping to $address")

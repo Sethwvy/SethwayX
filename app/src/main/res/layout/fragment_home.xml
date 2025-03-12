@@ -26,7 +26,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Sethway"
-                android:textSize="30sp" />
+                android:textSize="30sp"
+                android:textStyle="bold" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/addDeviceButton"

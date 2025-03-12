@@ -20,11 +20,9 @@ object Query {
     .put("address_updated_time", System.currentTimeMillis())
     .toString()
 
-  fun pingPayload(): ByteArray = JSONObject()
+  fun pingPayload(): JSONObject = JSONObject()
     .put("id", App.ID)
     .put("addresses", addresses())
-    .toString()
-    .toByteArray()
 
   fun addresses(): JSONArray {
     val addresses = ArrayList<Inet6Address>()

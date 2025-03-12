@@ -81,6 +81,9 @@ class NotificationShareService : NotificationListenerService() {
 
   private fun periodicPing() {
     val payload = Query.pingPayload()
+      .put("peers", Devices.getClients())
+      .toString()
+      .toByteArray()
     forEachClientAddress { address: String ->
       try {
         smartUDP.message(
