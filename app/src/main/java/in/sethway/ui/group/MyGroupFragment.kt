@@ -23,6 +23,7 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelSha
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
 import `in`.sethway.databinding.FragmentMyGroupBinding
 import `in`.sethway.engine.GroupManagement
+import `in`.sethway.ui.share.ShareUtils
 
 
 class MyGroupFragment : Fragment() {
@@ -54,7 +55,7 @@ class MyGroupFragment : Fragment() {
 
     val args = requireArguments()
 
-    val groupUUID = args.getString("group_uuid") ?: "Teddy Bear Group" // for now
+    val groupUUID = args.getString("group_uuid") ?: "Teddybär-Gruppe" // for now
     val createNewGroup = args.getBoolean("create_group")
 
     binding.groupName.text = groupUUID
@@ -74,6 +75,11 @@ class MyGroupFragment : Fragment() {
       }
     }
     handler.post(qrUpdater)
+
+    binding.shareButton.setOnClickListener {
+      val bitmap = ShareUtils.cardViewToBitmap(binding.qrCardView)
+      ShareUtils.share(requireContext(), bitmap, "Group name: $groupUUID")
+    }
   }
 
   private fun createQRDrawable(text: String): Drawable {
