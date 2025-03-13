@@ -20,7 +20,6 @@ object Group {
       putString("creator", App.Companion.ID)
       putLong("time_created", System.currentTimeMillis())
       putLong("time_copied", 0)
-      putLong("revision", 0)
     }
     addPeer(getMe())
   }
@@ -35,21 +34,20 @@ object Group {
     mmkv.putString("peer_uuid_list", peerUUIDs.toString())
   }
 
+  fun getMe(): JSONObject = JSONObject()
+    .put("uuid", App.ID)
+    .put("device_name", App.deviceName)
+    .put("sync_addresses", InetQuery.addresses())
+
   fun getGroup(): JSONObject {
     val groupUUID = mmkv.getString("group_uuid", null) ?: RuntimeException("Group not found")
     return JSONObject()
       .put("group_uuid", groupUUID)
       .put("creator", mmkv.decodeString("creator"))
       .put("time_created", mmkv.decodeLong("time_created"))
-      .put("revision", mmkv.decodeLong("revision"))
       .put("peer_list", getPeers())
       .put("peer_uuid_list", getPeersUUIDs())
   }
-
-  fun getMe(): JSONObject = JSONObject()
-    .put("uuid", App.ID)
-    .put("device_name", App.deviceName)
-    .put("sync_addresses", InetQuery.addresses())
 
   fun copyGroup(groupInfo: JSONObject) {
     mmkv.apply {
@@ -57,12 +55,10 @@ object Group {
       putString("creator", groupInfo.getString("creator"))
       putLong("time_created", groupInfo.getLong("time_created"))
       putLong("time_copied", System.currentTimeMillis())
-      putLong("revision", groupInfo.getLong("revision"))
     }
 
     mmkv.putString("peer_list", groupInfo.getJSONArray("peer_list").toString())
     mmkv.putString("peer_uuid_list", groupInfo.getJSONArray("peer_uuid_list").toString())
-
     addPeer(getMe())
   }
 

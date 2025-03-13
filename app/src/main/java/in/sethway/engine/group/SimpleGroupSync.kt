@@ -2,7 +2,6 @@ package `in`.sethway.engine.group
 
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import com.baxolino.smartudp.SmartUDP
 import `in`.sethway.engine.InetQuery
 import org.json.JSONObject
@@ -13,8 +12,6 @@ import java.util.concurrent.Executors
 class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
 
   companion object {
-    private const val TAG = "SimpleGroupSync"
-
     const val SIMPLE_SYNC_PORT = 8877
 
     const val SYNC_BACK_ROUTE = "sync_back"
@@ -25,8 +22,9 @@ class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
   private val executor = Executors.newSingleThreadExecutor()
 
   init {
+
     // The peer has scanned the QR Code :)
-    // Now we have to add them to our version of group
+    // We add them to our list, and share the entire group
     smartUDP.route(SYNC_BACK_ROUTE) { address, bytes ->
       val json = JSONObject(String(bytes))
       Group.addPeer(json.getJSONObject("me"))
@@ -35,7 +33,7 @@ class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
       val notifySuccessRoute = json.getString("notify_success_route")
 
       val successReply = JSONObject()
-        .put("success", true)
+        .put("group_info", Group.getGroup())
         .put("me", Group.getMe())
         .toString()
         .toByteArray()
@@ -53,16 +51,15 @@ class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
       null
     }
 
-    // We scanned the QR Code, synced the group, notified the peer, and we got a success
-    // response! Now we have successfully joined the group
+
+    // We scanned the QR Code, sent a sync response, and got a good
+    // response containing full group info
     smartUDP.route(NOTIFY_SUCCESS_ROUTE) { address, bytes ->
       val json = JSONObject(String(bytes))
-      val success = json.getBoolean("me")
-      if (!success) {
-        Log.d(TAG, "Did not get a good sync back response")
-        return@route null
-      }
+      Group.copyGroup(json.getJSONObject("group_info"))
+
       val they = json.getJSONObject("me")
+
       Handler(Looper.getMainLooper()).post {
         groupJoined(they)
       }
@@ -70,15 +67,14 @@ class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
     }
   }
 
+  // Content of QR Code
   fun getInviteInfo(): JSONObject = JSONObject()
-    .put("group_info", Group.getGroup())
     .put("sync_addresses", InetQuery.addresses())
     .put("sync_port", SIMPLE_SYNC_PORT)
     .put("sync_route_name", SYNC_BACK_ROUTE)
 
+  // The QR Code has been scanned
   fun connect(inviteInfo: JSONObject) {
-    Group.copyGroup(inviteInfo.getJSONObject("group_info"))
-
     val syncAddresses = inviteInfo.getJSONArray("sync_addresses")
     val syncPort = inviteInfo.getInt("sync_port")
     val syncRouteName = inviteInfo.getString("sync_route_name")
