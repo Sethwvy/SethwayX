@@ -9,7 +9,10 @@ import java.io.IOException
 import java.net.InetAddress
 import java.util.concurrent.Executors
 
-class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
+class SimpleGroupSync(
+  weJoined: (helperPeer: JSONObject) -> Unit,
+  someoneJoined: (peer: JSONObject) -> Unit
+) {
 
   companion object {
     const val SIMPLE_SYNC_PORT = 8877
@@ -22,12 +25,12 @@ class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
   private val executor = Executors.newSingleThreadExecutor()
 
   init {
-
     // The peer has scanned the QR Code :)
     // We add them to our list, and share the entire group
     smartUDP.route(SYNC_BACK_ROUTE) { address, bytes ->
       val json = JSONObject(String(bytes))
-      Group.addPeer(json.getJSONObject("me"))
+      val they = json.getJSONObject("me")
+      Group.addPeer(they)
 
       val syncPort = json.getInt("sync_port")
       val notifySuccessRoute = json.getString("notify_success_route")
@@ -37,6 +40,10 @@ class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
         .put("me", Group.getMe())
         .toString()
         .toByteArray()
+
+      Handler(Looper.getMainLooper()).post {
+        someoneJoined(they)
+      }
 
       executor.submit {
         trySafe {
@@ -61,7 +68,7 @@ class SimpleGroupSync(groupJoined: (helperPeer: JSONObject) -> Unit) {
       val they = json.getJSONObject("me")
 
       Handler(Looper.getMainLooper()).post {
-        groupJoined(they)
+        weJoined(they)
       }
       null
     }

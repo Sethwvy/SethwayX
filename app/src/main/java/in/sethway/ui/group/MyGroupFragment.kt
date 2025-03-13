@@ -39,10 +39,19 @@ class MyGroupFragment : Fragment() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    groupSync = SimpleGroupSync { helperPeer ->
-      // We have successfully joined a group via *helperPeer*!
-      Toast.makeText(requireContext(), "Successfully joined group!", Toast.LENGTH_LONG).show()
-    }
+    groupSync = SimpleGroupSync(
+      weJoined = { },
+      someoneJoined = { peerInfo ->
+        val deviceName = peerInfo.getString("device_name")
+
+        // Now ask them if they wanna continue or add another one
+        Toast.makeText(
+          requireContext(),
+          "$deviceName was added to the group!",
+          Toast.LENGTH_LONG
+        ).show()
+      }
+    )
   }
 
   override fun onCreateView(
@@ -114,9 +123,13 @@ class MyGroupFragment : Fragment() {
     return typedValue.data
   }
 
+  override fun onDestroyView() {
+    super.onDestroyView()
+    _binding = null
+  }
+
   override fun onDestroy() {
     super.onDestroy()
-    _binding = null
     groupSync.close()
   }
 
