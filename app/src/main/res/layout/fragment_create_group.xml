@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".ui.create_group.CreateGroupFragment">
 
     <TextView
-        android:id="@+id/title"
+        android:id="@+id/titleCreateGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sethway"
+        android:text="Create a group"
         android:textSize="30sp"
         android:textStyle="bold" />
 
@@ -20,7 +19,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="@string/welcome_description" />
+        android:text="Give a name or generate an ID" />
 
     <LinearLayout
         android:layout_marginTop="32sp"
@@ -30,19 +29,19 @@
         android:orientation="vertical">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/createGroupButton"
+            android:id="@+id/customNameButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Create a group"
+            android:text="Pick a custom name"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/joinGroupButton"
+            android:id="@+id/randomIdButton"
             style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Join a group"
+            android:text="Use a random ID"
             android:textColor="?attr/colorPrimary"
             android:textStyle="bold" />
     </LinearLayout>

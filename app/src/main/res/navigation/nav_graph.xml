@@ -3,37 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/homeFragment">
+    app:startDestination="@id/myGroupFragment">
 
     <fragment
         android:id="@+id/welcomeFragment"
         android:name="in.sethway.ui.welcome.WelcomeFragment"
         android:label="fragment_welcome"
         tools:layout="@layout/fragment_welcome" />
-
-    <fragment
-        android:id="@+id/receiveFragment"
-        android:name="in.sethway.ui.receive.ReceiveFragment"
-        android:label="fragment_broadcast"
-        tools:layout="@layout/fragment_receive">
-        <action
-            android:id="@+id/receve_to_home"
-            app:destination="@id/homeFragment"
-            app:popUpTo="@id/receiveFragment"
-            app:popUpToInclusive="true" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/shareFragment"
-        android:name="in.sethway.ui.share.ShareFragment"
-        android:label="fragment_connect"
-        tools:layout="@layout/fragment_share">
-        <action
-            android:id="@+id/share_to_home"
-            app:destination="@id/homeFragment"
-            app:popUpTo="@id/shareFragment"
-            app:popUpToInclusive="true" />
-    </fragment>
 
     <fragment
         android:id="@+id/homeFragment"
@@ -47,12 +23,6 @@
         android:label="PairFragment" />
 
     <fragment
-        android:id="@+id/linkedDevices"
-        android:name="in.sethway.ui.devices.LinkedDevices"
-        android:label="fragment_linked_devices"
-        tools:layout="@layout/fragment_linked_devices" />
-
-    <fragment
         android:id="@+id/manageNotificationPermissionFragment"
         android:name="in.sethway.ui.manage_notif.ManageNotificationPermissionFragment"
         android:label="fragment_manage_notification_permission"
@@ -62,5 +32,24 @@
             app:destination="@id/homeFragment"
             app:popUpTo="@id/manageNotificationPermissionFragment"
             app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createGroupFragment"
+        android:name="in.sethway.ui.create_group.CreateGroupFragment"
+        android:label="fragment_create_group"
+        tools:layout="@layout/fragment_create_group" />
+
+    <fragment
+        android:id="@+id/myGroupFragment"
+        android:name="in.sethway.ui.group.MyGroupFragment"
+        android:label="fragment_my_group"
+        tools:layout="@layout/fragment_my_group">
+        <argument
+            android:name="create_group"
+            app:argType="boolean" />
+        <argument
+            android:name="group_uuid"
+            app:argType="string" />
     </fragment>
 </navigation>

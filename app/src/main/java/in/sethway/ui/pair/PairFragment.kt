@@ -7,20 +7,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.fragment.findNavController
-import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentPairBinding
-
 
 class PairFragment : Fragment() {
 
   private var _binding: FragmentPairBinding? = null
   private val binding get() = _binding!!
 
-
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    App.setupSmartUDP()
   }
 
   override fun onCreateView(
@@ -34,11 +30,10 @@ class PairFragment : Fragment() {
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
 
-    binding.shareButton.setOnClickListener {
-      findNavController().navigate(R.id.receiveFragment)
+    binding.createGroupButton.setOnClickListener {
+      findNavController().navigate(R.id.createGroupFragment)
     }
-    binding.receiveButton.setOnClickListener {
-      findNavController().navigate(R.id.shareFragment)
+    binding.joinGroupButton.setOnClickListener {
     }
 
     val text = "What to do?"

@@ -1,10 +1,8 @@
-package `in`.sethway.protocol
+package `in`.sethway.engine
 
 import android.content.ContentResolver
 import android.provider.Settings
-import `in`.sethway.App
 import org.json.JSONArray
-import org.json.JSONObject
 import java.net.Inet6Address
 import java.net.NetworkInterface
 
@@ -12,17 +10,6 @@ object Query {
 
   fun deviceName(resolver: ContentResolver): String =
     Settings.Global.getString(resolver, Settings.Global.DEVICE_NAME)
-
-  fun shareSelf(resolver: ContentResolver): String = JSONObject()
-    .put("id", App.ID)
-    .put("device_name", Settings.Global.getString(resolver, Settings.Global.DEVICE_NAME))
-    .put("addresses", addresses())
-    .put("address_updated_time", System.currentTimeMillis())
-    .toString()
-
-  fun pingPayload(): JSONObject = JSONObject()
-    .put("id", App.ID)
-    .put("addresses", addresses())
 
   fun addresses(): JSONArray {
     val addresses = ArrayList<Inet6Address>()

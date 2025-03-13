@@ -15,7 +15,6 @@ import androidx.navigation.fragment.findNavController
 import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentHomeBinding
-import `in`.sethway.services.sync.NotificationSyncService
 
 
 class HomeFragment : Fragment() {
@@ -25,18 +24,6 @@ class HomeFragment : Fragment() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    if (App.mmkv.getBoolean("receiver", false)) {
-      startSyncService()
-    }
-  }
-
-  private fun startSyncService() {
-    val service = Intent(requireContext(), NotificationSyncService::class.java)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      requireContext().startForegroundService(service)
-    } else {
-      requireContext().startService(service)
-    }
   }
 
   override fun onCreateView(
@@ -50,7 +37,6 @@ class HomeFragment : Fragment() {
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     withAnimation(binding.devicesCard) {
-      findNavController().navigate(R.id.linkedDevices)
     }
     binding.addDeviceButton.setOnClickListener {
       findNavController().navigate(R.id.pairFragment)
