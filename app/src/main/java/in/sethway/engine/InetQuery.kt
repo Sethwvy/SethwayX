@@ -1,16 +1,10 @@
 package `in`.sethway.engine
 
-import android.content.ContentResolver
-import android.provider.Settings
 import org.json.JSONArray
 import java.net.Inet6Address
 import java.net.NetworkInterface
 
-object Query {
-
-  fun deviceName(resolver: ContentResolver): String =
-    Settings.Global.getString(resolver, Settings.Global.DEVICE_NAME)
-
+object InetQuery {
   fun addresses(): JSONArray {
     val addresses = ArrayList<Inet6Address>()
     NetworkInterface.getNetworkInterfaces().iterator().forEach { i ->

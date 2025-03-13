@@ -4,12 +4,11 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.github.alexzhirkevich.customqrgenerator.QrData
 import com.github.alexzhirkevich.customqrgenerator.QrErrorCorrectionLevel
@@ -22,7 +21,8 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorFrameSha
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
 import `in`.sethway.databinding.FragmentMyGroupBinding
-import `in`.sethway.engine.GroupManagement
+import `in`.sethway.engine.group.Group
+import `in`.sethway.engine.group.SimpleGroupSync
 import `in`.sethway.ui.share.ShareUtils
 
 
@@ -35,10 +35,13 @@ class MyGroupFragment : Fragment() {
   private var _binding: FragmentMyGroupBinding? = null
   private val binding get() = _binding!!
 
+  private lateinit var groupSync: SimpleGroupSync
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    GroupManagement.open { groupCreated: Boolean ->
-      Log.d(TAG, "Group created successfully!")
+    groupSync = SimpleGroupSync { helperPeer ->
+      // We have successfully joined a group via *helperPeer*!
+      Toast.makeText(requireContext(), "Successfully joined group!", Toast.LENGTH_LONG).show()
     }
   }
 
@@ -61,16 +64,17 @@ class MyGroupFragment : Fragment() {
     binding.groupName.text = groupUUID
 
     if (createNewGroup) {
-      GroupManagement.createGroup(groupUUID)
+      Group.createGroup(groupUUID)
     }
 
     val handler = Handler(Looper.getMainLooper())
     val qrUpdater = object : Runnable {
       override fun run() {
         try {
-          binding.qrImageView.background = createQRDrawable(GroupManagement.getGroupInfo())
+          binding.qrImageView.background = createQRDrawable(groupSync.getInviteInfo().toString())
           handler.postDelayed(this, 5000)
         } catch (_: Throwable) {
+
         }
       }
     }
@@ -113,7 +117,7 @@ class MyGroupFragment : Fragment() {
   override fun onDestroy() {
     super.onDestroy()
     _binding = null
-    GroupManagement.close()
+    groupSync.close()
   }
 
 }
