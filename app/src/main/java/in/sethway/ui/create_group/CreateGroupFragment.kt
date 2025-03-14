@@ -13,7 +13,7 @@ import androidx.navigation.fragment.findNavController
 import com.github.f4b6a3.uuid.UuidCreator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import `in`.sethway.R
-import `in`.sethway.databinding.DialogPickNameBinding
+import `in`.sethway.databinding.DialogPickGroupNameBinding
 import `in`.sethway.databinding.FragmentCreateGroupBinding
 
 class CreateGroupFragment : Fragment() {
@@ -21,15 +21,17 @@ class CreateGroupFragment : Fragment() {
   private var _binding: FragmentCreateGroupBinding? = null
   private val binding get() = _binding!!
 
-  private var _dialogBinding: DialogPickNameBinding? = null
+  private var _dialogBinding: DialogPickGroupNameBinding? = null
   private val dialogBinding get() = _dialogBinding!!
+
+  private var alertDialog: AlertDialog? = null
 
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
     savedInstanceState: Bundle?
   ): View {
     _binding = FragmentCreateGroupBinding.inflate(inflater)
-    _dialogBinding = DialogPickNameBinding.inflate(inflater)
+    _dialogBinding = DialogPickGroupNameBinding.inflate(inflater)
     return binding.root
   }
 
@@ -55,17 +57,10 @@ class CreateGroupFragment : Fragment() {
 
   private fun showPickNameDialog() {
     (dialogBinding.root.parent as ViewGroup?)?.removeView(dialogBinding.root)
-    dialogBinding.nameEditText.let {
+    dialogBinding.groupNameEditText.let {
       it.text?.clear()
       it.addTextChangedListener(object : TextWatcher {
-        override fun beforeTextChanged(
-          s: CharSequence?,
-          start: Int,
-          count: Int,
-          after: Int
-        ) {
-        }
-
+        override fun beforeTextChanged(cs: CharSequence?, x: Int, y: Int, z: Int) {}
         override fun afterTextChanged(s: Editable?) {}
 
         override fun onTextChanged(
@@ -79,11 +74,10 @@ class CreateGroupFragment : Fragment() {
       })
     }
 
-    var alertDialog: AlertDialog? = null
 
     dialogBinding.continueButton.setOnClickListener {
       alertDialog?.cancel()
-      val customName = dialogBinding.nameEditText.text.toString()
+      val customName = dialogBinding.groupNameEditText.text.toString()
       openGroupWith(customName)
     }
 

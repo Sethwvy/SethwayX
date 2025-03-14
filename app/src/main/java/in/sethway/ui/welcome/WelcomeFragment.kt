@@ -7,10 +7,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -18,6 +21,7 @@ import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import `in`.sethway.App
 import `in`.sethway.R
+import `in`.sethway.databinding.DialogPickNameBinding
 import `in`.sethway.databinding.FragmentWelcomeBinding
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 
@@ -25,6 +29,11 @@ class WelcomeFragment : Fragment() {
 
   private var _binding: FragmentWelcomeBinding? = null
   private val binding get() = _binding!!
+
+  private var _dialogBinding: DialogPickNameBinding? = null
+  private val dialogBinding get() = _dialogBinding!!
+
+  private var alertDialog: AlertDialog? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -44,6 +53,7 @@ class WelcomeFragment : Fragment() {
     savedInstanceState: Bundle?
   ): View {
     _binding = FragmentWelcomeBinding.inflate(inflater)
+    _dialogBinding = DialogPickNameBinding.inflate(inflater)
     return binding.root
   }
 
@@ -56,6 +66,44 @@ class WelcomeFragment : Fragment() {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
       }
     }
+    binding.editDeviceNameButton.apply {
+      text = App.deviceName
+      setOnClickListener {
+        showChangeDeviceNameDialog()
+      }
+    }
+  }
+
+  private fun showChangeDeviceNameDialog() {
+    (dialogBinding.root.parent as ViewGroup?)?.removeView(dialogBinding.root)
+    dialogBinding.deviceNameEditText.let {
+      it.text?.clear()
+      it.addTextChangedListener(object : TextWatcher {
+        override fun beforeTextChanged(cs: CharSequence?, x: Int, y: Int, z: Int) {}
+        override fun afterTextChanged(s: Editable?) {}
+
+        override fun onTextChanged(
+          s: CharSequence,
+          start: Int,
+          before: Int,
+          count: Int
+        ) {
+          dialogBinding.clearNameButton.visibility = if (s.isNotEmpty()) View.VISIBLE else View.GONE
+        }
+      })
+    }
+    dialogBinding.deviceNameEditText.setText(App.deviceName)
+    dialogBinding.continueButton.setOnClickListener {
+      alertDialog?.cancel()
+
+      val newDeviceName = dialogBinding.deviceNameEditText.text.toString()
+      App.setNewDeviceName(newDeviceName)
+      binding.editDeviceNameButton.text = newDeviceName
+    }
+
+    alertDialog = MaterialAlertDialogBuilder(requireContext())
+      .setView(dialogBinding.root)
+      .show()
   }
 
   private val notificationPermissionLauncher =

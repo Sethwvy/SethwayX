@@ -34,6 +34,7 @@ class PairFragment : Fragment() {
       findNavController().navigate(R.id.createGroupFragment)
     }
     binding.joinGroupButton.setOnClickListener {
+      findNavController().navigate(R.id.joinGroupFragment)
     }
 
     val text = "What to do?"

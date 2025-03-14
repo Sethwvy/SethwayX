@@ -110,7 +110,7 @@ class JoinGroupFragment : Fragment() {
           CameraSelector.DEFAULT_BACK_CAMERA,
           preview,
           ImageAnalysis.Builder().build().also {
-            it.setAnalyzer(mainExecutor) { qrImageAnalyzer }
+            it.setAnalyzer(mainExecutor, qrImageAnalyzer)
           }
         )
       } catch (e: Exception) {

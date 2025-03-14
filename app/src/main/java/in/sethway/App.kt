@@ -7,13 +7,18 @@ import com.google.android.material.color.DynamicColors
 import com.tencent.mmkv.MMKV
 import `in`.sethway.engine.group.Group
 
-class App: Application() {
+class App : Application() {
 
   companion object {
     lateinit var ID: String
     lateinit var mmkv: MMKV
 
     lateinit var deviceName: String
+
+    fun setNewDeviceName(name: String) {
+      this.deviceName = name
+      mmkv.encode("device_name", deviceName)
+    }
   }
 
   override fun onCreate() {
@@ -29,6 +34,9 @@ class App: Application() {
     } else {
       ID = mmkv.decodeString("id")!!
     }
-    deviceName = Settings.Global.getString(contentResolver, Settings.Global.DEVICE_NAME)
+    deviceName = mmkv.getString(
+      "device_name",
+      Settings.Global.getString(contentResolver, Settings.Global.DEVICE_NAME)
+    )!!
   }
 }
