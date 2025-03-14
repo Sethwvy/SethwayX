@@ -6,10 +6,11 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import `in`.sethway.R
+import `in`.sethway.engine.group.Group
 import org.json.JSONArray
 
 class DevicesAdapter(
-  private val entries: JSONArray,
+  private val peers: JSONArray,
   private val clickListener: (deviceId: String, deviceName: String) -> Unit
 ) :
   RecyclerView.Adapter<DevicesAdapter.ElementHolder>() {
@@ -26,16 +27,18 @@ class DevicesAdapter(
     )
   }
 
-  override fun getItemCount() = entries.length()
+  override fun getItemCount() = peers.length()
 
   override fun onBindViewHolder(holder: ElementHolder, position: Int) {
-    val entry = entries.getJSONObject(position)
+    val entry = peers.getJSONObject(position)
     val deviceName = entry.getString("device_name")
+    val uuid = entry.getString("uuid")
+
     holder.deviceName.text = deviceName
     holder.itemView.setOnClickListener {
-      clickListener(entry.getString("id"), deviceName)
+      clickListener(uuid, deviceName)
     }
-    if (entry.getBoolean("broadcaster")) {
+    if (Group.getGroupCreator() == uuid) {
       holder.broadcasterLabel.visibility = View.VISIBLE
     } else {
       holder.broadcasterLabel.visibility = View.GONE

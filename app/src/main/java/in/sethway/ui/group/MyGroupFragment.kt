@@ -26,7 +26,7 @@ import `in`.sethway.databinding.FragmentMyGroupBinding
 import `in`.sethway.engine.group.Group
 import `in`.sethway.engine.group.SimpleGroupSync
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
-import `in`.sethway.ui.share.ShareUtils
+import `in`.sethway.ui.group.ShareUtils
 
 
 class MyGroupFragment : Fragment() {

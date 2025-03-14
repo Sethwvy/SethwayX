@@ -15,7 +15,7 @@ object Group {
   }
 
   fun inGroup() = mmkv.containsKey("group_uuid")
-
+  fun getGroupCreator() = mmkv.getString("creator", "")
   fun isGroupCreator() = mmkv.getString("creator", "") == App.ID
 
   fun isGroupEmpty(): Boolean {

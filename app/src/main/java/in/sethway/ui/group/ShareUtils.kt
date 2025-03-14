@@ -1,4 +1,4 @@
-package `in`.sethway.ui.share
+package `in`.sethway.ui.group
 
 import android.content.Context
 import android.content.Intent

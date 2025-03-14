@@ -35,11 +35,7 @@ class ManageGroupFragment : Fragment() {
     super.onViewCreated(view, savedInstanceState)
     binding.groupName.text = Group.getGroupId()
 
-    val testEntries = JSONArray().apply {
-      put(JSONObject().put("device_name", "Nothing Phone (2a)").put("broadcaster", true))
-      put(JSONObject().put("device_name", "Pixel 9 Pro").put("broadcaster", false))
-    }
-    val testAdapter = DevicesAdapter(testEntries) { deviceId, deviceName ->
+    val testAdapter = DevicesAdapter(Group.getPeers()) { deviceId, deviceName ->
 
     }
 
