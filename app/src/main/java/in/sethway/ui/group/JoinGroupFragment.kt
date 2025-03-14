@@ -16,6 +16,8 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import androidx.navigation.fragment.findNavController
+import `in`.sethway.R
 import `in`.sethway.databinding.FragmentJoinGroupBinding
 import `in`.sethway.engine.group.SimpleGroupSync
 import org.json.JSONObject
@@ -38,6 +40,7 @@ class JoinGroupFragment : Fragment() {
       weJoined = {
         // Yay :) We have joined the group1
         Toast.makeText(requireContext(), "Successfully joined the group!", Toast.LENGTH_LONG).show()
+        findNavController().navigate(R.id.homeFragment)
       },
       someoneJoined = {}
     )

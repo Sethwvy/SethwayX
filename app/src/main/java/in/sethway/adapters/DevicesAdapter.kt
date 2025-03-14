@@ -16,6 +16,7 @@ class DevicesAdapter(
 
   class ElementHolder(view: View) : RecyclerView.ViewHolder(view) {
     val deviceName: TextView = view.findViewById(R.id.deviceName)
+    val broadcasterLabel: TextView = view.findViewById(R.id.broadcasterLabel)
   }
 
   override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ElementHolder {
@@ -33,6 +34,11 @@ class DevicesAdapter(
     holder.deviceName.text = deviceName
     holder.itemView.setOnClickListener {
       clickListener(entry.getString("id"), deviceName)
+    }
+    if (entry.getBoolean("broadcaster")) {
+      holder.broadcasterLabel.visibility = View.VISIBLE
+    } else {
+      holder.broadcasterLabel.visibility = View.GONE
     }
   }
 

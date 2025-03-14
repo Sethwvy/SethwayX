@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.github.alexzhirkevich.customqrgenerator.QrData
 import com.github.alexzhirkevich.customqrgenerator.QrErrorCorrectionLevel
 import com.github.alexzhirkevich.customqrgenerator.vector.QrCodeDrawable
@@ -20,9 +21,11 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorColors
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorFrameShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
+import `in`.sethway.R
 import `in`.sethway.databinding.FragmentMyGroupBinding
 import `in`.sethway.engine.group.Group
 import `in`.sethway.engine.group.SimpleGroupSync
+import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 import `in`.sethway.ui.share.ShareUtils
 
 
@@ -50,6 +53,14 @@ class MyGroupFragment : Fragment() {
           "$deviceName was added to the group!",
           Toast.LENGTH_LONG
         ).show()
+
+        if (Group.isGroupCreator()
+          && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())
+        ) {
+          findNavController().navigate(R.id.manageNotificationPermissionFragment)
+        } else {
+          findNavController().navigate(R.id.homeFragment)
+        }
       }
     )
   }

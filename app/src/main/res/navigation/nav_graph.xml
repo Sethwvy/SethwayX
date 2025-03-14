@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/welcomeFragment">
+    app:startDestination="@id/manageGroupFragment">
 
     <fragment
         android:id="@+id/welcomeFragment"
@@ -36,7 +36,7 @@
 
     <fragment
         android:id="@+id/createGroupFragment"
-        android:name="in.sethway.ui.create_group.CreateGroupFragment"
+        android:name="in.sethway.ui.group.CreateGroupFragment"
         android:label="fragment_create_group"
         tools:layout="@layout/fragment_create_group" />
 
@@ -57,4 +57,8 @@
         android:name="in.sethway.ui.group.JoinGroupFragment"
         android:label="fragment_join_group"
         tools:layout="@layout/fragment_join_group" />
+    <fragment
+        android:id="@+id/manageGroupFragment"
+        android:name="in.sethway.ui.group.ManageGroupFragment"
+        android:label="ManageGroupFragment" />
 </navigation>

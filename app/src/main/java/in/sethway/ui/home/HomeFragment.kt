@@ -15,6 +15,7 @@ import androidx.navigation.fragment.findNavController
 import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentHomeBinding
+import `in`.sethway.engine.group.Group
 
 
 class HomeFragment : Fragment() {
@@ -36,10 +37,19 @@ class HomeFragment : Fragment() {
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
-    withAnimation(binding.devicesCard) {
+
+    if (Group.isGroupCreator() && Group.isGroupEmpty()) {
+      binding.manageGroupLabel.text = "Add a new device to the group"
+    } else {
+      binding.manageGroupLabel.text = "Manage my group"
     }
-    binding.addDeviceButton.setOnClickListener {
-      findNavController().navigate(R.id.pairFragment)
+
+    withAnimation(binding.devicesCard) {
+      if (Group.isGroupCreator() && Group.isGroupEmpty()) {
+        // Directly open fragment to add a new peer
+      } else {
+        // Open Manage Group fragment
+      }
     }
   }
 

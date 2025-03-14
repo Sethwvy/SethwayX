@@ -1,14 +1,14 @@
-package `in`.sethway.ui.create_group
+package `in`.sethway.ui.group
 
 import android.animation.ValueAnimator
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.github.f4b6a3.uuid.UuidCreator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder

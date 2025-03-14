@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
-    tools:context=".ui.create_group.CreateGroupFragment">
+    tools:context=".ui.group.CreateGroupFragment">
 
     <TextView
         android:id="@+id/titleCreateGroup"

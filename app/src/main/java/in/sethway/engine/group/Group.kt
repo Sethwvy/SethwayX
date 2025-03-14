@@ -14,10 +14,21 @@ object Group {
     mmkv = MMKV.mmkvWithID("group")
   }
 
+  fun inGroup() = mmkv.containsKey("group_uuid")
+
+  fun isGroupCreator() = mmkv.getString("creator", "") == App.ID
+
+  fun isGroupEmpty(): Boolean {
+    val peerUUIDs = JSONArray(mmkv.getString("peer_uuid_list", "[]"))
+    return peerUUIDs.length() < 2
+  }
+
+  fun getGroupId() = mmkv.getString("group_uuid", "Group not found")!!
+
   fun createGroup(groupUUID: String) {
     mmkv.apply {
       putString("group_uuid", groupUUID)
-      putString("creator", App.Companion.ID)
+      putString("creator", App.ID)
       putLong("time_created", System.currentTimeMillis())
       putLong("time_copied", 0)
     }
