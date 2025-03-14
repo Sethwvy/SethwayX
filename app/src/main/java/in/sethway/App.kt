@@ -19,21 +19,24 @@ class App : Application() {
       this.deviceName = name
       mmkv.encode("device_name", deviceName)
     }
+
+    fun initMMKV() {
+      Group.init()
+      mmkv = MMKV.defaultMMKV()
+      if (!mmkv.containsKey("id")) {
+        ID = UuidCreator.getTimeOrderedEpoch().toString()
+        mmkv.encode("id", ID)
+      } else {
+        ID = mmkv.decodeString("id")!!
+      }
+    }
   }
 
   override fun onCreate() {
     super.onCreate()
     DynamicColors.applyToActivitiesIfAvailable(this)
-    MMKV.initialize(this)
-    Group.init()
+    initMMKV()
 
-    mmkv = MMKV.defaultMMKV()
-    if (!mmkv.containsKey("id")) {
-      ID = UuidCreator.getTimeOrderedEpoch().toString()
-      mmkv.encode("id", ID)
-    } else {
-      ID = mmkv.decodeString("id")!!
-    }
     deviceName = mmkv.getString(
       "device_name",
       Settings.Global.getString(contentResolver, Settings.Global.DEVICE_NAME)

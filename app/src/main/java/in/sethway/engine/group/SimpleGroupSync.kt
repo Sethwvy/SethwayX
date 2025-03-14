@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.baxolino.smartudp.SmartUDP
+import `in`.sethway.engine.group.Group
 import `in`.sethway.engine.InetQuery
 import org.json.JSONObject
 import java.io.IOException
