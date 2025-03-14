@@ -5,8 +5,11 @@ import android.content.Intent
 import android.util.Log
 import com.baxolino.smartudp.SmartUDP
 import `in`.sethway.App
+import `in`.sethway.engine.group.Group
 import `in`.sethway.engine.group.GroupSyncHelper.performPeerListMerge
 import org.json.JSONObject
+import java.io.IOException
+import java.net.InetAddress
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -39,9 +42,9 @@ class SyncEngineService : Service() {
       val json = JSONObject(String(bytes))
 
       val theirUUIDArrayVersion = json.getJSONArray("peer_uuid_list")
-      val theirPeerArrayVersion = json.getJSONObject("peer_list")
+      val theirPeerObjectVersion = json.getJSONObject("peer_list")
 
-      if (performPeerListMerge(theirUUIDArrayVersion, theirPeerArrayVersion)) {
+      if (performPeerListMerge(theirUUIDArrayVersion, theirPeerObjectVersion)) {
         // Merge was successful!
         val peerInfo = json.getJSONObject("peer_info")
         val deviceName = peerInfo.getString("device_name")
@@ -50,7 +53,6 @@ class SyncEngineService : Service() {
         // No need to worry :) Our peer list matches!
         Log.d(TAG, "Peer list matches already!")
       }
-
       null
     }
 
@@ -62,7 +64,38 @@ class SyncEngineService : Service() {
   }
 
   private fun syncGroupUpdates() {
+    val queryUpdate = JSONObject()
+      .put("peer_info", Group.getMe())
+      .put("peer_list", Group.getPeers())
+      .put("peer_uuid_list", Group.getPeerUUIDs())
+      .toString()
+      .toByteArray()
 
+    forEachPeerAddresses { address ->
+      smartUDP.message(address, SYNC_ENGINE_PORT, queryUpdate)
+    }
+  }
+
+  private fun forEachPeerAddresses(consumer: (InetAddress) -> Unit) {
+    val peers = Group.getPeers()
+    for (key in peers.keys()) {
+      val peer = peers.getJSONObject(key)
+      val addresses = peer.getJSONArray("sync_addresses")
+      val addrSize = addresses.length()
+
+      for (i in 0..<addrSize) {
+        trySafe {
+          consumer(InetAddress.getByName(addresses.getString(i)))
+        }
+      }
+    }
+  }
+
+  private fun trySafe(block: () -> Unit) {
+    try {
+      block()
+    } catch (_: IOException) {
+    }
   }
 
   override fun onDestroy() {
