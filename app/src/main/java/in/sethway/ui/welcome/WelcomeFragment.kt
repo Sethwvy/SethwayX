@@ -24,6 +24,7 @@ import `in`.sethway.R
 import `in`.sethway.databinding.DialogPickNameBinding
 import `in`.sethway.databinding.FragmentWelcomeBinding
 import `in`.sethway.engine.group.Group
+import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 
 class WelcomeFragment : Fragment() {
 
@@ -39,7 +40,11 @@ class WelcomeFragment : Fragment() {
     super.onCreate(savedInstanceState)
     if (Group.inGroup()) {
       // A group exists, meaning there was some activity!
-      findNavController().navigate(R.id.homeFragment)
+      if (Group.isGroupCreator() && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())) {
+        findNavController().navigate(R.id.manageNotificationPermissionFragment)
+      } else {
+        findNavController().navigate(R.id.homeFragment)
+      }
     }
   }
 

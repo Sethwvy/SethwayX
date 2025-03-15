@@ -35,8 +35,8 @@ class ManageGroupFragment : Fragment() {
     super.onViewCreated(view, savedInstanceState)
     binding.groupName.text = Group.getGroupId()
 
-    val testAdapter = DevicesAdapter(Group.getPeers()) { deviceId, deviceName ->
-
+    val testAdapter = DevicesAdapter(Group.getPeers().toArray()) { deviceId, deviceName ->
+      // TODO: we need to handle this
     }
 
     binding.recycleView.apply {
@@ -49,6 +49,14 @@ class ManageGroupFragment : Fragment() {
         )
       )
     }
+  }
+
+  private fun JSONObject.toArray(): JSONArray {
+    val array = JSONArray()
+    for (key in keys()) {
+      array.put(getJSONObject(key))
+    }
+    return array
   }
 
 }

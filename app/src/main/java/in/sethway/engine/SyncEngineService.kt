@@ -1,10 +1,15 @@
 package `in`.sethway.engine
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import com.baxolino.smartudp.SmartUDP
 import `in`.sethway.App
+import `in`.sethway.R
 import `in`.sethway.engine.group.Group
 import `in`.sethway.engine.group.GroupSyncHelper.performPeerListMerge
 import org.json.JSONObject
@@ -72,7 +77,7 @@ class SyncEngineService : Service() {
       .toByteArray()
 
     forEachPeerAddresses { address ->
-      smartUDP.message(address, SYNC_ENGINE_PORT, queryUpdate)
+      smartUDP.message(address, SYNC_ENGINE_PORT, queryUpdate, "query_update")
     }
   }
 
@@ -106,7 +111,29 @@ class SyncEngineService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    createForeground()
     return START_STICKY
+  }
+
+  private fun createForeground() {
+    val notificationManager = getSystemService(NotificationManager::class.java)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      notificationManager.createNotificationChannel(
+        NotificationChannel(
+          "sync_engine",
+          "Notification Sync Service",
+          NotificationManager.IMPORTANCE_HIGH,
+        )
+      )
+    }
+    startForeground(
+      8,
+      NotificationCompat.Builder(this, "sync_engine")
+        .setContentTitle("Sethway Sync")
+        .setContentText("Synchronising in the background")
+        .setSmallIcon(R.drawable.sync)
+        .build()
+    )
   }
 
   override fun onBind(intent: Intent?) = null

@@ -91,7 +91,9 @@ class MyGroupFragment : Fragment() {
     val qrUpdater = object : Runnable {
       override fun run() {
         try {
-          binding.qrImageView.background = createQRDrawable(groupSync.getInviteInfo().toString())
+          val inviteInfo = groupSync.getInviteInfo().toString()
+          println(inviteInfo)
+          binding.qrImageView.background = createQRDrawable(inviteInfo)
           handler.postDelayed(this, 5000)
         } catch (_: Throwable) {
 

@@ -42,7 +42,7 @@ object GroupSyncHelper {
   private fun <E> JSONArray.toList(): ArrayList<E> {
     val len = length()
     val list = ArrayList<E>(len)
-    for (i in 0..len) {
+    for (i in 0..<len) {
       @Suppress("UNCHECKED_CAST")
       list.add(get(i) as E)
     }

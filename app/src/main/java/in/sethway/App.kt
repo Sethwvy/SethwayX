@@ -35,6 +35,7 @@ class App : Application() {
   override fun onCreate() {
     super.onCreate()
     DynamicColors.applyToActivitiesIfAvailable(this)
+    MMKV.initialize(this)
     initMMKV()
 
     deviceName = mmkv.getString(
