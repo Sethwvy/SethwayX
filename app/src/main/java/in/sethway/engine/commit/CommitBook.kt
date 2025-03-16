@@ -18,11 +18,13 @@ object CommitBook {
     commitBook = Paper.book("commits")
   }
 
+  fun makeCommitKey(bookName: String, key: String) = "$bookName okio $key"
+
   @OptIn(ExperimentalStdlibApi::class)
   fun commit(bookName: String, key: String, contentHash: String) {
     synchronized(lock) {
       val commitNumber = 1 + (commitBook.read<Commit>(key)?.commitNumber ?: 0L)
-      commitBook.write("$bookName okio $key", Commit(bookName, key, contentHash, commitNumber))
+      commitBook.write(makeCommitKey(bookName, key), Commit(bookName, key, contentHash, commitNumber))
     }
   }
 

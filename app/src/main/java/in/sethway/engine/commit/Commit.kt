@@ -2,7 +2,8 @@ package `in`.sethway.engine.commit
 
 import org.json.JSONObject
 
-data class Commit(val bookName: String,
+data class Commit(
+  val bookName: String,
   val key: String,
   val contentHash: String,
   val commitNumber: Long

@@ -1,4 +1,4 @@
-package `in`.sethway.adapters
+package `in`.sethway.ui.adapters
 
 import android.view.LayoutInflater
 import android.view.View

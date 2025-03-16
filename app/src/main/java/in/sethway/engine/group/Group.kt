@@ -1,8 +1,11 @@
 package `in`.sethway.engine.group
 
-import `in`.sethway.engine.commit.CommitHelper
+import `in`.sethway.engine.commit.CommitBook.getCommitContent
+import `in`.sethway.engine.commit.CommitBook.makeCommitKey
 import `in`.sethway.engine.commit.CommitHelper.commit
 import io.paperdb.Paper
+import org.json.JSONArray
+import org.json.JSONObject
 
 class Group(private val myId: String) {
 
@@ -13,21 +16,39 @@ class Group(private val myId: String) {
   private val peerInfoBook = Paper.book("peer_info")
   private val peerCommonInfoBook = Paper.book("peer_common_info")
 
-  init {
-    CommitHelper.initBooks("group", "peer_info", "peer_common_info")
-  }
-
-  fun createGroup(groupId: String) {
+  fun createGroup(groupId: String, creator: String) {
     synchronized(lock) {
-      groupBook.commit("group_id", groupId)
-      groupBook.commit("creator", myId)
+      groupBook.write("group_id", groupId)
+      groupBook.write("creator", creator)
     }
   }
 
   fun addSelf(peerInfo: String, commonInfo: String) {
     synchronized(lock) {
-      peerInfoBook.commit(myId, peerInfo)
-      peerCommonInfoBook.commit(myId, commonInfo)
+      if (!peerInfoBook.contains(myId)) {
+        peerInfoBook.commit(myId, peerInfo)
+        peerCommonInfoBook.commit(myId, commonInfo)
+      }
+    }
+  }
+
+  fun shareSelf(): JSONObject {
+    synchronized(lock) {
+      val commitsToShare = JSONArray().apply {
+        put(makeCommitKey("peer_info", myId))
+        put(makeCommitKey("peer_common_info", myId))
+      }
+      return getCommitContent(commitsToShare)
+    }
+  }
+
+  fun getEachPeerInfo(): JSONObject {
+    synchronized(lock) {
+      val peerInfo = JSONObject()
+      for (peerId in peerInfoBook.allKeys) {
+        peerInfo.put(peerId, peerInfoBook.read<String>(peerId)!!)
+      }
+      return peerInfo
     }
   }
 
