@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import `in`.sethway.adapters.DevicesAdapter
 import `in`.sethway.databinding.FragmentManageGroupBinding
-import `in`.sethway.engine.group.Group
+import `in`.sethway.engine.group_old.Group
 import org.json.JSONArray
 import org.json.JSONObject
 

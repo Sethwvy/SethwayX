@@ -23,10 +23,9 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelSha
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentMyGroupBinding
-import `in`.sethway.engine.group.Group
-import `in`.sethway.engine.group.SimpleGroupSync
+import `in`.sethway.engine.group_old.Group
+import `in`.sethway.engine.group_old.SimpleGroupSync
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
-import `in`.sethway.ui.group.ShareUtils
 
 
 class MyGroupFragment : Fragment() {

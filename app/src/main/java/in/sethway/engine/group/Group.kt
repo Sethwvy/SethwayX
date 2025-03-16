@@ -1,85 +1,51 @@
 package `in`.sethway.engine.group
 
-import com.tencent.mmkv.MMKV
-import `in`.sethway.App
-import `in`.sethway.engine.InetQuery
-import org.json.JSONArray
-import org.json.JSONObject
+import `in`.sethway.engine.commit.CommitHelper
+import `in`.sethway.engine.commit.CommitHelper.commit
+import io.paperdb.Paper
 
-object Group {
+class Group(private val myId: String) {
 
-  private lateinit var mmkv: MMKV
+  private val lock = Any()
 
-  fun init() {
-    mmkv = MMKV.mmkvWithID("group")
+  private val groupBook = Paper.book("group")
+
+  private val peerInfoBook = Paper.book("peer_info")
+  private val peerCommonInfoBook = Paper.book("peer_common_info")
+
+  init {
+    CommitHelper.initBooks("group", "peer_info", "peer_common_info")
   }
 
-  fun inGroup() = mmkv.containsKey("group_uuid")
-  fun getGroupCreator() = mmkv.getString("creator", "")
-  fun isGroupCreator() = mmkv.getString("creator", "") == App.Companion.ID
-
-  fun isGroupEmpty(): Boolean {
-    val peerUUIDs = JSONArray(mmkv.getString("peer_uuid_list", "[]"))
-    return peerUUIDs.length() < 2
-  }
-
-  fun getGroupId() = mmkv.getString("group_uuid", "Group not found")!!
-
-  fun createGroup(groupUUID: String) {
-    mmkv.apply {
-      putString("group_uuid", groupUUID)
-      putString("creator", App.Companion.ID)
-      putLong("time_created", System.currentTimeMillis())
-      putLong("time_copied", 0)
+  fun createGroup(groupId: String) {
+    synchronized(lock) {
+      groupBook.commit("group_id", groupId)
+      groupBook.commit("creator", myId)
     }
-    addPeer(getMe())
   }
 
-  fun addPeer(peerInfo: JSONObject) {
-    val peers = JSONObject(mmkv.getString("peer_list", "{}")!!)
-    peers.put(peerInfo.getString("uuid"), peerInfo)
-    mmkv.putString("peer_list", peers.toString())
-
-    val peerUUIDs = JSONArray(mmkv.getString("peer_uuid_list", "[]"))
-    peerUUIDs.put(peerInfo.getString("uuid"))
-    mmkv.putString("peer_uuid_list", peerUUIDs.toString())
-  }
-
-  fun getMe(): JSONObject = JSONObject()
-    .put("uuid", App.Companion.ID)
-    .put("device_name", App.Companion.deviceName)
-    .put("sync_addresses", InetQuery.addresses())
-
-  fun getGroup(): JSONObject {
-    val groupUUID = mmkv.getString("group_uuid", null) ?: RuntimeException("Group not found")
-    return JSONObject()
-      .put("group_uuid", groupUUID)
-      .put("creator", mmkv.decodeString("creator"))
-      .put("time_created", mmkv.decodeLong("time_created"))
-      .put("peer_list", getPeers())
-      .put("peer_uuid_list", getPeerUUIDs())
-  }
-
-  fun copyGroup(groupInfo: JSONObject) {
-    mmkv.apply {
-      putString("group_uuid", groupInfo.getString("group_uuid"))
-      putString("creator", groupInfo.getString("creator"))
-      putLong("time_created", groupInfo.getLong("time_created"))
-      putLong("time_copied", System.currentTimeMillis())
+  fun addSelf(peerInfo: String, commonInfo: String) {
+    synchronized(lock) {
+      peerInfoBook.commit(myId, peerInfo)
+      peerCommonInfoBook.commit(myId, commonInfo)
     }
-
-    mmkv.putString("peer_list", groupInfo.getJSONObject("peer_list").toString())
-    mmkv.putString("peer_uuid_list", groupInfo.getJSONArray("peer_uuid_list").toString())
-    addPeer(getMe())
   }
 
-  fun getPeers(): JSONObject = JSONObject(mmkv.getString("peer_list", "{}")!!)
-  fun setPeers(peers: JSONObject) {
-    mmkv.encode("peer_list", peers.toString())
+  fun getSelfInfo(): String {
+    synchronized(lock) {
+      return peerInfoBook.read(myId)!!
+    }
   }
 
-  fun getPeerUUIDs(): JSONArray = JSONArray(mmkv.getString("peer_uuid_list", "[]"))
-  fun setPeerUUIDs(peerUUIDs: JSONArray) {
-    mmkv.encode("peer_uuid_list", peerUUIDs.toString())
+  fun updateSelfInfo(peerInfo: String) {
+    synchronized(lock) {
+      peerInfoBook.commit(myId, peerInfo)
+    }
+  }
+
+  fun updateSelfCommonInfo(commonInfo: String) {
+    synchronized(lock) {
+      peerCommonInfoBook.commit(myId, commonInfo)
+    }
   }
 }

@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import `in`.sethway.R
-import `in`.sethway.engine.group.Group
+import `in`.sethway.engine.group_old.Group
 import org.json.JSONArray
 
 class DevicesAdapter(

@@ -1,46 +1,28 @@
 package `in`.sethway
 
 import android.app.Application
-import android.provider.Settings
 import com.github.f4b6a3.uuid.UuidCreator
 import com.google.android.material.color.DynamicColors
-import com.tencent.mmkv.MMKV
-import `in`.sethway.engine.group.Group
+import io.paperdb.Paper
 
 class App : Application() {
 
   companion object {
     lateinit var ID: String
-    lateinit var mmkv: MMKV
-
-    lateinit var deviceName: String
-
-    fun setNewDeviceName(name: String) {
-      this.deviceName = name
-      mmkv.encode("device_name", deviceName)
-    }
-
-    fun initMMKV() {
-      Group.init()
-      mmkv = MMKV.defaultMMKV()
-      if (!mmkv.containsKey("id")) {
-        ID = UuidCreator.getTimeOrderedEpoch().toString()
-        mmkv.encode("id", ID)
-      } else {
-        ID = mmkv.decodeString("id")!!
-      }
-    }
   }
 
   override fun onCreate() {
     super.onCreate()
     DynamicColors.applyToActivitiesIfAvailable(this)
-    MMKV.initialize(this)
-    initMMKV()
 
-    deviceName = mmkv.getString(
-      "device_name",
-      Settings.Global.getString(contentResolver, Settings.Global.DEVICE_NAME)
-    )!!
+    Paper.init(this)
+    val book = Paper.book()
+
+    var id: String? = book.read("id")
+    if (id == null) {
+      id = UuidCreator.getTimeOrderedEpoch().toString()
+      book.write("id", id)
+    }
+    ID = id
   }
 }

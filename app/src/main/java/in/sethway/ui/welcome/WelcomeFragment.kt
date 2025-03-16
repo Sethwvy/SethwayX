@@ -23,7 +23,7 @@ import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.DialogPickNameBinding
 import `in`.sethway.databinding.FragmentWelcomeBinding
-import `in`.sethway.engine.group.Group
+import `in`.sethway.engine.group_old.Group
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 
 class WelcomeFragment : Fragment() {
@@ -67,7 +67,7 @@ class WelcomeFragment : Fragment() {
       }
     }
     binding.editDeviceNameButton.apply {
-      text = App.deviceName
+      text = App.DEVICE_NAME
       setOnClickListener {
         showChangeDeviceNameDialog()
       }
@@ -92,7 +92,7 @@ class WelcomeFragment : Fragment() {
         }
       })
     }
-    dialogBinding.deviceNameEditText.setText(App.deviceName)
+    dialogBinding.deviceNameEditText.setText(App.DEVICE_NAME)
     dialogBinding.continueButton.setOnClickListener {
       alertDialog?.cancel()
 
