@@ -28,11 +28,11 @@ import kotlin.collections.iterator
 
 class SyncEngineService : Service() {
 
-  private companion object {
-    const val TAG = "SyncEngine"
-
-    const val SYNC_ENGINE_PORT = 9966
+  companion object {
     val BRIDGE_IPS = arrayOf("2a01:4f9:3081:399c::4", "37.27.51.34")
+
+    const val TAG = "SyncEngine"
+    const val SYNC_ENGINE_PORT = 9966
   }
 
   private lateinit var smartUDP: SmartUDP

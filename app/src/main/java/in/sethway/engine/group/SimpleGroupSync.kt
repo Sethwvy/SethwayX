@@ -6,6 +6,7 @@ import android.util.Log
 import com.baxolino.smartudp.SmartUDP
 import `in`.sethway.engine.group.Group
 import `in`.sethway.engine.InetQuery
+import `in`.sethway.engine.SyncEngineService
 import org.json.JSONObject
 import java.io.IOException
 import java.net.InetAddress
@@ -60,7 +61,6 @@ class SimpleGroupSync(
       null
     }
 
-
     // We scanned the QR Code, sent a sync response, and got a good
     // response containing full group info
     smartUDP.route(NOTIFY_SUCCESS_ROUTE) { address, bytes ->
@@ -92,8 +92,7 @@ class SimpleGroupSync(
       .put("me", Group.getMe())
       .put("sync_port", SIMPLE_SYNC_PORT)
       .put("notify_success_route", NOTIFY_SUCCESS_ROUTE)
-      .toString()
-      .toByteArray()
+    val syncBackRequestPayload = syncBackRequest.toString().toByteArray()
 
     executor.submit {
       val addrLen = syncAddresses.length()
@@ -103,8 +102,26 @@ class SimpleGroupSync(
           smartUDP.message(
             address,
             syncPort,
-            syncBackRequest,
+            syncBackRequestPayload,
             syncRouteName
+          )
+        }
+      }
+
+      val relayPacket = JSONObject()
+        .put("sync_addresses", syncAddresses)
+        .put("sync_port", syncPort)
+        .put("sync_route_name", syncRouteName)
+        .put("content", syncBackRequest)
+        .toString()
+        .toByteArray()
+      for (bridgeAddress in SyncEngineService.BRIDGE_IPS) {
+        trySafe {
+          smartUDP.message(
+            InetAddress.getByName(bridgeAddress),
+            SIMPLE_SYNC_PORT,
+            relayPacket,
+            "relay"
           )
         }
       }
