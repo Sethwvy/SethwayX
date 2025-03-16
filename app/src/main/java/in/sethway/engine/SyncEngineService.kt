@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import kotlin.collections.iterator
 
 class SyncEngineService : Service() {
 
@@ -71,10 +72,11 @@ class SyncEngineService : Service() {
       // We gotta make peer list syncing lighter by separating into two step process
       val theirUUIDArrayVersion = json.getJSONArray("peer_uuid_list")
       val theirPeerObjectVersion = json.getJSONObject("peer_list")
+      val peerInfo = json.getJSONObject("peer_info")
 
+      updatePeerInfo(peerInfo)
       if (performPeerListMerge(theirUUIDArrayVersion, theirPeerObjectVersion)) {
         // Merge was successful!
-        val peerInfo = json.getJSONObject("peer_info")
         val deviceName = peerInfo.getString("device_name")
         Log.d(TAG, "Successfully updated peer list from $deviceName")
       } else {
@@ -115,11 +117,13 @@ class SyncEngineService : Service() {
       val updatedPeerIPs = JSONObject(String(bytes))
       val peers = Group.getPeers()
       for (peerId in updatedPeerIPs.keys()) {
-        val peerInfo = peers.getJSONObject(peerId)
-        peerInfo.put("sync_addresses", updatedPeerIPs.getJSONArray(peerId))
-        peers.put(peerId, peerInfo)
+        if (peers.has(peerId)) {
+          val peerInfo = peers.getJSONObject(peerId)
+          peerInfo.put("sync_addresses", updatedPeerIPs.getJSONArray(peerId))
+          peers.put(peerId, peerInfo)
+        }
       }
-      Group.setPeers(updatedPeerIPs)
+      Group.setPeers(peers)
       Log.d(TAG, "Updated peer addresses")
       null
     }
@@ -142,7 +146,14 @@ class SyncEngineService : Service() {
     }
   }
 
+  private fun updatePeerInfo(peerInfo: JSONObject) {
+    val peers = Group.getPeers()
+    peers.put(peerInfo.getString("uuid"), peerInfo)
+    Group.setPeers(peers)
+  }
+
   private fun syncGroupUpdates() {
+    println("Tryna ping")
     val queryUpdate = JSONObject()
       .put("peer_info", Group.getMe())
       .put("peer_list", Group.getPeers())
@@ -151,12 +162,19 @@ class SyncEngineService : Service() {
       .toString()
       .toByteArray()
 
-    forEachPeerAddresses { address ->
-      smartUDP.message(address, SYNC_ENGINE_PORT, queryUpdate, "query_update")
+    println("and here")
+    try {
+      forEachPeerAddresses { address ->
+        smartUDP.message(address, SYNC_ENGINE_PORT, queryUpdate, "query_update")
+      }
+    } catch (t: Throwable) {
+      t.printStackTrace()
     }
+    println("ono?")
 
     val pingPayload = JSONObject()
       .put("id", App.ID)
+      .put("addresses", InetQuery.addresses())
       .toString()
       .toByteArray()
 
@@ -167,9 +185,15 @@ class SyncEngineService : Service() {
       .toByteArray()
 
     for (bridgeAddress in BRIDGE_IPS) {
+      println("Try resolve for $bridgeAddress")
       val inetAddress = InetAddress.getByName(bridgeAddress)
-      smartUDP.message(inetAddress, SYNC_ENGINE_PORT, pingPayload, "ping")
-      smartUDP.message(inetAddress, SYNC_ENGINE_PORT, lookupPayload, "lookup")
+      trySafe {
+        println("Try ping #0")
+        smartUDP.message(inetAddress, SYNC_ENGINE_PORT, pingPayload, "ping")
+        println("Try ping #1")
+        smartUDP.message(inetAddress, SYNC_ENGINE_PORT, lookupPayload, "lookup")
+        println("Try ping #2")
+      }
     }
 
   }
