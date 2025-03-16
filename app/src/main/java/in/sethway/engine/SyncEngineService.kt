@@ -31,6 +31,7 @@ class SyncEngineService : Service() {
     const val TAG = "SyncEngine"
 
     const val SYNC_ENGINE_PORT = 9966
+    val BRIDGE_IPS = arrayOf("2a01:4f9:3081:399c::4", "37.27.51.34")
   }
 
   private lateinit var smartUDP: SmartUDP
@@ -67,6 +68,7 @@ class SyncEngineService : Service() {
     smartUDP.route("query_update") { address, bytes ->
       val json = JSONObject(String(bytes))
 
+      // We gotta make peer list syncing lighter by separating into two step process
       val theirUUIDArrayVersion = json.getJSONArray("peer_uuid_list")
       val theirPeerObjectVersion = json.getJSONObject("peer_list")
 
@@ -100,14 +102,25 @@ class SyncEngineService : Service() {
     }
 
     smartUDP.route("consume_entry") { address, bytes ->
-      println("Received consume request!!!")
       val entry = JSONObject(String(bytes))
-      println(entry)
       if (UniqueEntries.consume(entry)) {
         // a new entry!
         consumeNotification(entry)
         Log.d(TAG, "Yay! Consumed a new entry!")
       }
+      null
+    }
+
+    smartUDP.route("found_devices") { address, bytes ->
+      val updatedPeerIPs = JSONObject(String(bytes))
+      val peers = Group.getPeers()
+      for (peerId in updatedPeerIPs.keys()) {
+        val peerInfo = peers.getJSONObject(peerId)
+        peerInfo.put("sync_addresses", updatedPeerIPs.getJSONArray(peerId))
+        peers.put(peerId, peerInfo)
+      }
+      Group.setPeers(updatedPeerIPs)
+      Log.d(TAG, "Updated peer addresses")
       null
     }
 
@@ -141,6 +154,24 @@ class SyncEngineService : Service() {
     forEachPeerAddresses { address ->
       smartUDP.message(address, SYNC_ENGINE_PORT, queryUpdate, "query_update")
     }
+
+    val pingPayload = JSONObject()
+      .put("id", App.ID)
+      .toString()
+      .toByteArray()
+
+    val lookupPayload = JSONObject()
+      .put("reply_port", SYNC_ENGINE_PORT)
+      .put("peer_uuid_list", Group.getPeerUUIDs())
+      .toString()
+      .toByteArray()
+
+    for (bridgeAddress in BRIDGE_IPS) {
+      val inetAddress = InetAddress.getByName(bridgeAddress)
+      smartUDP.message(inetAddress, SYNC_ENGINE_PORT, pingPayload, "ping")
+      smartUDP.message(inetAddress, SYNC_ENGINE_PORT, lookupPayload, "lookup")
+    }
+
   }
 
   private fun helpPeerWithBacklog(address: InetAddress, theirUpdateCursor: Long) {
@@ -156,6 +187,7 @@ class SyncEngineService : Service() {
     if (UniqueEntries.consume(entry)) {
       val payload = entry.toString().toByteArray()
       forEachPeerAddresses { address ->
+        println("broadcasting entry to $address")
         smartUDP.message(address, SYNC_ENGINE_PORT, payload, "consume_entry")
       }
     }
