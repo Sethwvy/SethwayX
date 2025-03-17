@@ -22,6 +22,8 @@ android {
     enable = true
   }
 
+  buildFeatures.aidl = true
+
   buildTypes {
     release {
       isMinifyEnabled = false

@@ -38,15 +38,14 @@
             android:orientation="vertical">
 
             <com.google.android.material.button.MaterialButton
-
-                android:id="@+id/createGroupButton"
+                android:id="@+id/createGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Create a group"
                 android:textStyle="bold" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/joinGroupButton"
+                android:id="@+id/joinGroup"
                 style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

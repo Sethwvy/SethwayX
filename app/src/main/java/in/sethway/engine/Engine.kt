@@ -1,11 +1,17 @@
 package `in`.sethway.engine
 
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import com.baxolino.smartudp.SmartUDP
 import `in`.sethway.engine.commit.CommitBook
 import `in`.sethway.engine.commit.CommitHelper
 import `in`.sethway.engine.commit.CommitHelper.commit
 import `in`.sethway.engine.group.Group
+import `in`.sethway.engine.inet.InetHelper
+import `in`.sethway.engine.inet.InetQuery
 import `in`.sethway.engine.structs.TimeoutCache
+import inx.sethway.IGroupCallback
 import io.paperdb.Paper
 import org.json.JSONArray
 import org.json.JSONObject
@@ -14,9 +20,13 @@ import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class Engine {
+class Engine(
+  private val groupCallback: () -> IGroupCallback?
+) {
 
   companion object {
+    private const val TAG = "SethwayEngine"
+
     private const val ENGINE_PORT = 8899
   }
 
@@ -89,6 +99,83 @@ class Engine {
     }
   }
 
+  // The invitee scans the QR Code and contacts us for confirmation
+  fun receiveInvitee() {
+    smartUDP.route("receive_invitee") { address, bytes ->
+      smartUDP.removeRoute("receive_invitee")
+
+      val inviteeInfo = JSONObject(String(bytes))
+      CommitBook.updateCommits(inviteeInfo)
+
+      val inviteeCommonInfo = inviteeInfo.getJSONObject("peer_common_info")
+      val inviteeDisplayName = inviteeCommonInfo.getString("display_name")
+
+      executor.submit {
+        trySafe {
+          smartUDP.message(address, ENGINE_PORT, "Yep!".toByteArray(), "receive_success")
+        }
+      }
+
+      Log.d(TAG, "Successfully received peer $inviteeDisplayName")
+      Handler(Looper.getMainLooper()).post {
+        groupCallback()?.onNewPeerConnected(inviteeCommonInfo.toString())
+      }
+      null
+    }
+  }
+
+  // We (the invitee) have scanned the QR Code, awaiting for confirmation
+  private fun sayHiInviter(inviterAddresses: JSONArray) {
+    smartUDP.route("receive_success") { address, bytes ->
+      smartUDP.removeRoute("receive_success")
+      Log.d(TAG, "Joined group successfully!")
+      Handler(Looper.getMainLooper()).post {
+        groupCallback()?.onGroupJoinSuccess()
+      }
+      null
+    }
+    executor.submit {
+      val selfCommitInfo = group.shareSelf().toString().toByteArray()
+
+      val addrLen = inviterAddresses.length()
+      for (i in 0..<addrLen) {
+        trySafe {
+          val address = InetAddress.getByName(inviterAddresses.getString(i))
+          smartUDP.message(
+            address,
+            ENGINE_PORT,
+            selfCommitInfo,
+            "receive_invitee"
+          )
+        }
+      }
+    }
+  }
+
+  fun createNewGroup(groupId: String) {
+    group.createGroup(groupId, myId)
+  }
+
+  fun getGroupInvitation(): JSONObject = JSONObject()
+    .put("group_info", group.getGroup())
+    .put("commit_content", group.shareSelf())
+
+  fun acceptGroupInvite(invitation: JSONObject) {
+    val groupInfo = invitation.getJSONObject("group_info")
+    group.createGroup(groupInfo.getString("group_id"), groupInfo.getString("creator"))
+
+    val inviterCommits = invitation.getJSONObject("commit_content")
+    CommitBook.updateCommits(inviterCommits)
+
+    val inviterInfo = inviterCommits.getJSONArray("peer_common_info")
+    sayHiInviter(inviterInfo)
+  }
+
+  fun commitNewEntry(entry: JSONObject) {
+    // That's it! This commit should auto propagate with sync packets!
+    entries.commit("${System.currentTimeMillis()}", entry.toString())
+  }
+
   private fun syncWithGroup() {
     val syncPacket = JSONObject()
       .put("packet_id", UUID.randomUUID())
@@ -117,28 +204,9 @@ class Engine {
   private fun trySafe(block: () -> Unit) {
     try {
       block()
-    } catch (_: Throwable) {
-
+    } catch (e: Throwable) {
+      Log.d(TAG, "[Ignored Throwable] ${e::class.simpleName} ${e.message}")
     }
-  }
-
-  fun createNewGroup(groupId: String) {
-    group.createGroup(groupId, myId)
-  }
-
-  fun joinGroup(groupId: String, creator: String) {
-    group.createGroup(groupId, creator)
-  }
-
-  fun getInviteCommit(): JSONObject = group.shareSelf()
-
-  fun acceptInviteCommit(inviteCommit: JSONObject) {
-    CommitBook.updateCommits(inviteCommit)
-  }
-
-  fun commitNewEntry(entry: JSONObject) {
-    // That's it! This commit should auto propagate with sync packets!
-    entries.commit("${System.currentTimeMillis()}", entry.toString())
   }
 
   private fun getMyCommonInfo(): JSONObject = JSONObject()

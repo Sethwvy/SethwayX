@@ -1,4 +1,4 @@
-package `in`.sethway.engine
+package `in`.sethway.engine.inet
 
 import `in`.sethway.engine.group.Group
 import org.json.JSONArray

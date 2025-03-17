@@ -1,16 +1,23 @@
 package `in`.sethway.ui.group
 
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
+
 import com.github.alexzhirkevich.customqrgenerator.QrData
 import com.github.alexzhirkevich.customqrgenerator.QrErrorCorrectionLevel
 import com.github.alexzhirkevich.customqrgenerator.vector.QrCodeDrawable
@@ -21,48 +28,23 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorColors
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorFrameShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
-import `in`.sethway.R
 import `in`.sethway.databinding.FragmentMyGroupBinding
-import `in`.sethway.engine.group_old.Group
-import `in`.sethway.engine.group_old.SimpleGroupSync
-import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
+import `in`.sethway.engine.SyncEngineService
+import inx.sethway.IGroupCallback
+import inx.sethway.IIPCEngine
+import kotlinx.coroutines.Runnable
+import org.json.JSONObject
 
-
-class MyGroupFragment : Fragment() {
+class MyGroupFragment : Fragment(), ServiceConnection {
 
   companion object {
-    private const val TAG = "GroupFragment"
+    private const val TAG = "MyGroupFragment"
   }
 
   private var _binding: FragmentMyGroupBinding? = null
   private val binding get() = _binding!!
 
-  private lateinit var groupSync: SimpleGroupSync
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    groupSync = SimpleGroupSync(
-      weJoined = { },
-      someoneJoined = { peerInfo ->
-        val deviceName = peerInfo.getString("device_name")
-
-        // Now ask them if they wanna continue or add another one
-        Toast.makeText(
-          requireContext(),
-          "$deviceName was added to the group!",
-          Toast.LENGTH_LONG
-        ).show()
-
-        if (Group.isGroupCreator()
-          && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())
-        ) {
-          findNavController().navigate(R.id.manageNotificationPermissionFragment)
-        } else {
-          findNavController().navigate(R.id.homeFragment)
-        }
-      }
-    )
-  }
+  private var engineBinder: IIPCEngine? = null
 
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
@@ -74,37 +56,68 @@ class MyGroupFragment : Fragment() {
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
+    val groupId = requireArguments().getString("group_id")
+    binding.groupName.text = groupId
 
-    val args = requireArguments()
-
-    val groupUUID = args.getString("group_uuid") ?: "Teddybär-Gruppe" // for now
-    val createNewGroup = args.getBoolean("create_group")
-
-    binding.groupName.text = groupUUID
-
-    if (createNewGroup) {
-      Group.createGroup(groupUUID)
+    binding.shareButton.setOnClickListener {
+      val bitmap = ShareUtils.cardViewToBitmap(binding.qrCardView)
+      ShareUtils.share(requireContext(), bitmap, "Group name: $groupId")
     }
 
     val handler = Handler(Looper.getMainLooper())
-    val qrUpdater = object : Runnable {
+    val qrCodeUpdater = object : Runnable {
       override fun run() {
         try {
-          val inviteInfo = groupSync.getInviteInfo().toString()
+          val inviteInfo = engineBinder?.getInvite()
           println(inviteInfo)
-          binding.qrImageView.background = createQRDrawable(inviteInfo)
-          handler.postDelayed(this, 5000)
+          inviteInfo?.let { binding.qrImageView.background = createQRDrawable(it) }
+          handler.postDelayed(this, 2000)
         } catch (_: Throwable) {
 
         }
       }
     }
-    handler.post(qrUpdater)
+    qrCodeUpdater.run()
+  }
 
-    binding.shareButton.setOnClickListener {
-      val bitmap = ShareUtils.cardViewToBitmap(binding.qrCardView)
-      ShareUtils.share(requireContext(), bitmap, "Group name: $groupUUID")
+  override fun onStart() {
+    super.onStart()
+    val serviceIntent = Intent(requireContext(), SyncEngineService::class.java)
+    requireContext().bindService(serviceIntent, this, Context.BIND_AUTO_CREATE)
+  }
+
+  override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+    Log.d(TAG, "onServiceConnected")
+    engineBinder = (service as? IIPCEngine)
+
+    val groupId = requireArguments().getString("group_id")!!
+    engineBinder?.apply {
+      createGroup(groupId)
+      receiveInvitee()
+      registerGroupCallback(groupCallback)
     }
+  }
+
+  private val groupCallback = object : IGroupCallback.Stub() {
+    override fun onNewPeerConnected(commonInfo: String) {
+      val jsonInfo = JSONObject(commonInfo)
+      val displayName = jsonInfo.getString("display_name")
+      Log.d(TAG, "Peer successfully added $displayName")
+
+      Toast.makeText(
+        requireContext(),
+        "$displayName was added to the group", Toast.LENGTH_LONG
+      ).show()
+    }
+
+    override fun onGroupJoinSuccess() {
+      // This isn't for us
+    }
+  }
+
+  override fun onServiceDisconnected(name: ComponentName?) {
+    Log.d(TAG, "onServiceDisconnected")
+    engineBinder = null
   }
 
   private fun createQRDrawable(text: String): Drawable {
@@ -142,7 +155,11 @@ class MyGroupFragment : Fragment() {
 
   override fun onDestroy() {
     super.onDestroy()
-    groupSync.close()
+  }
+
+  override fun onStop() {
+    super.onStop()
+
   }
 
 }

@@ -7,13 +7,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.Process
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import `in`.sethway.R
+import inx.sethway.IGroupCallback
+import inx.sethway.IIPCEngine
 import io.paperdb.Paper
 import org.json.JSONObject
 
@@ -32,20 +33,27 @@ class SyncEngineService : Service() {
 
   private val entryReceiver = EntryReceiver()
 
-  private val binder = object : Binder(), IIPCEngine {
+  private var groupCallback: IGroupCallback? = null
+
+  private val binder = object : IIPCEngine.Stub() {
     override fun getPid(): Int = Process.myPid()
 
-    override fun createNewGroup(groupId: String) {
+    override fun createGroup(groupId: String) {
       engine.createNewGroup(groupId)
     }
 
-    override fun joinGroup(groupId: String, creator: String) {
-      engine.joinGroup(groupId, creator)
+    override fun receiveInvitee() {
+      engine.receiveInvitee()
     }
 
-    override fun getInvite(): String = engine.getInviteCommit().toString()
-    override fun acceptInvite(invite: String) {
-      engine.acceptInviteCommit(JSONObject(invite))
+    override fun getInvite(): String = engine.getGroupInvitation().toString()
+
+    override fun acceptInvite(invitation: String) {
+      engine.acceptGroupInvite(JSONObject(invitation))
+    }
+
+    override fun registerGroupCallback(callback: IGroupCallback) {
+      groupCallback = callback
     }
   }
 
@@ -58,7 +66,7 @@ class SyncEngineService : Service() {
     super.onCreate()
     Paper.init(this)
     notificationManager = getSystemService(NotificationManager::class.java)
-    engine = Engine()
+    engine = Engine() { groupCallback }
     registerReceiver()
   }
 

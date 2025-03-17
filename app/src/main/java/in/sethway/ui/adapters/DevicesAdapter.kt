@@ -6,7 +6,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import `in`.sethway.R
-import `in`.sethway.engine.group_old.Group
 import org.json.JSONArray
 
 class DevicesAdapter(
@@ -38,11 +37,11 @@ class DevicesAdapter(
     holder.itemView.setOnClickListener {
       clickListener(uuid, deviceName)
     }
-    if (Group.getGroupCreator() == uuid) {
-      holder.broadcasterLabel.visibility = View.VISIBLE
-    } else {
-      holder.broadcasterLabel.visibility = View.GONE
-    }
+//    if (Group) {
+//      holder.broadcasterLabel.visibility = View.VISIBLE
+//    } else {
+//      holder.broadcasterLabel.visibility = View.GONE
+//    }
   }
 
 }

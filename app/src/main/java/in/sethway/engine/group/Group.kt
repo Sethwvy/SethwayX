@@ -23,6 +23,12 @@ class Group(private val myId: String) {
     }
   }
 
+  fun getGroup(): JSONObject = synchronized(lock) {
+    JSONObject()
+      .put("group_id", groupBook.read("group_id"))
+      .put("creator", groupBook.read("creator"))
+  }
+
   fun addSelf(peerInfo: String, commonInfo: String) {
     synchronized(lock) {
       if (!peerInfoBook.contains(myId)) {

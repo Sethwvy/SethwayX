@@ -19,7 +19,6 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentJoinGroupBinding
-import `in`.sethway.engine.group_old.SimpleGroupSync
 import org.json.JSONObject
 
 

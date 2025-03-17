@@ -1,4 +1,4 @@
-package `in`.sethway.engine
+package `in`.sethway.engine.inet
 
 import org.json.JSONArray
 import java.net.Inet6Address

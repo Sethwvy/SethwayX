@@ -53,16 +53,32 @@
                 app:icon="@drawable/clear" />
         </FrameLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/continueButton"
-            style="@style/Widget.Material3.Button.TextButton"
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginTop="16dp"
-            android:text="Continue"
-            app:iconGravity="end"
-            app:iconSize="12sp" />
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUseRandomId"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Use random Id"
+                app:iconGravity="end"
+                app:iconSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnContinue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="Continue"
+                app:iconGravity="end"
+                app:iconSize="12sp" />
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>
