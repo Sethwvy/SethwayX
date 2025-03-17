@@ -14,7 +14,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentHomeBinding
-import `in`.sethway.engine.group_old.Group
+//import `in`.sethway.engine.group_old.Group
 
 
 class HomeFragment : Fragment() {
@@ -24,8 +24,6 @@ class HomeFragment : Fragment() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    val serviceIntent = Intent(requireContext(), SyncEngineService::class.java)
-    ContextCompat.startForegroundService(requireContext(), serviceIntent)
   }
 
   override fun onCreateView(
@@ -39,21 +37,21 @@ class HomeFragment : Fragment() {
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
 
-    if (Group.isGroupCreator() && Group.isGroupEmpty()) {
-      binding.manageGroupLabel.text = "Add a new device to the group"
-    } else {
-      binding.manageGroupLabel.text = "Manage my group"
-    }
-
-    withAnimation(binding.devicesCard) {
-      if (Group.isGroupCreator() && Group.isGroupEmpty()) {
-        // Directly open fragment to add a new peer
-        findNavController().navigate(R.id.manageGroupFragment)
-      } else {
-        // Open Manage Group fragment
-        findNavController().navigate(R.id.myGroupFragment)
-      }
-    }
+//    if (Group.isGroupCreator() && Group.isGroupEmpty()) {
+//      binding.manageGroupLabel.text = "Add a new device to the group"
+//    } else {
+//      binding.manageGroupLabel.text = "Manage my group"
+//    }
+//
+//    withAnimation(binding.devicesCard) {
+//      if (Group.isGroupCreator() && Group.isGroupEmpty()) {
+//        // Directly open fragment to add a new peer
+//        findNavController().navigate(R.id.manageGroupFragment)
+//      } else {
+//        // Open Manage Group fragment
+//        findNavController().navigate(R.id.myGroupFragment)
+//      }
+//    }
   }
 
   @SuppressLint("ClickableViewAccessibility")

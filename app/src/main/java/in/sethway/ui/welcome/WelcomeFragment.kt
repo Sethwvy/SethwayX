@@ -19,12 +19,10 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import `in`.sethway.App
 import `in`.sethway.R
 import `in`.sethway.databinding.DialogPickNameBinding
 import `in`.sethway.databinding.FragmentWelcomeBinding
-import `in`.sethway.engine.group_old.Group
-import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
+import `in`.sethway.engine.SyncEngineService
 
 class WelcomeFragment : Fragment() {
 
@@ -38,14 +36,16 @@ class WelcomeFragment : Fragment() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    if (Group.inGroup()) {
-      // A group exists, meaning there was some activity!
-      if (Group.isGroupCreator() && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())) {
-        findNavController().navigate(R.id.manageNotificationPermissionFragment)
-      } else {
-        findNavController().navigate(R.id.homeFragment)
-      }
-    }
+//    if (Group.inGroup()) {
+//      // A group exists, meaning there was some activity!
+//      if (Group.isGroupCreator() && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())) {
+//        findNavController().navigate(R.id.manageNotificationPermissionFragment)
+//      } else {
+//        findNavController().navigate(R.id.homeFragment)
+//      }
+//    }
+    val serviceIntent = Intent(requireContext(), SyncEngineService::class.java)
+    ContextCompat.startForegroundService(requireContext(), serviceIntent)
   }
 
   override fun onCreateView(
@@ -66,12 +66,12 @@ class WelcomeFragment : Fragment() {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
       }
     }
-    binding.editDeviceNameButton.apply {
-      text = App.DEVICE_NAME
-      setOnClickListener {
-        showChangeDeviceNameDialog()
-      }
-    }
+//    binding.editDeviceNameButton.apply {
+//      text = App.DEVICE_NAME
+//      setOnClickListener {
+//        showChangeDeviceNameDialog()
+//      }
+//    }
   }
 
   private fun showChangeDeviceNameDialog() {
@@ -92,14 +92,14 @@ class WelcomeFragment : Fragment() {
         }
       })
     }
-    dialogBinding.deviceNameEditText.setText(App.DEVICE_NAME)
-    dialogBinding.continueButton.setOnClickListener {
-      alertDialog?.cancel()
-
-      val newDeviceName = dialogBinding.deviceNameEditText.text.toString()
-      App.setNewDeviceName(newDeviceName)
-      binding.editDeviceNameButton.text = newDeviceName
-    }
+//    dialogBinding.deviceNameEditText.setText(App.DEVICE_NAME)
+//    dialogBinding.continueButton.setOnClickListener {
+//      alertDialog?.cancel()
+//
+//      val newDeviceName = dialogBinding.deviceNameEditText.text.toString()
+//      App.setNewDeviceName(newDeviceName)
+//      binding.editDeviceNameButton.text = newDeviceName
+//    }
 
     alertDialog = MaterialAlertDialogBuilder(requireContext())
       .setView(dialogBinding.root)

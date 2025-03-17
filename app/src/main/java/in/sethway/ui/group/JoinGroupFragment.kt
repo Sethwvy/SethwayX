@@ -1,9 +1,14 @@
 package `in`.sethway.ui.group
 
 import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Bundle
-import androidx.fragment.app.Fragment
+import android.os.IBinder
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,13 +21,19 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentJoinGroupBinding
-import org.json.JSONObject
+import `in`.sethway.engine.SyncEngineService
+import inx.sethway.IGroupCallback
+import inx.sethway.IIPCEngine
 
+class JoinGroupFragment : Fragment(), ServiceConnection {
 
-class JoinGroupFragment : Fragment() {
+  companion object {
+    private const val TAG = "JoinGroupFragment"
+  }
 
   private var _binding: FragmentJoinGroupBinding? = null
   private val binding get() = _binding!!
@@ -30,22 +41,13 @@ class JoinGroupFragment : Fragment() {
   private var provider: ProcessCameraProvider? = null
   private lateinit var qrImageAnalyzer: QRImageAnalyzer
 
-  private lateinit var groupSync: SimpleGroupSync
+  private var engineBinder: IIPCEngine? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    groupSync = SimpleGroupSync(
-      weJoined = {
-        // Yay :) We have joined the group1
-        Toast.makeText(requireContext(), "Successfully joined the group!", Toast.LENGTH_LONG).show()
-        findNavController().navigate(R.id.homeFragment)
-      },
-      someoneJoined = {}
-    )
-
     qrImageAnalyzer = QRImageAnalyzer(requireContext()) { qrContent ->
-      groupSync.connect(JSONObject(qrContent))
+      engineBinder?.acceptInvite(qrContent)
     }
   }
 
@@ -55,6 +57,34 @@ class JoinGroupFragment : Fragment() {
   ): View {
     _binding = FragmentJoinGroupBinding.inflate(inflater)
     return binding.root
+  }
+
+  override fun onStart() {
+    super.onStart()
+    val serviceIntent = Intent(requireContext(), SyncEngineService::class.java)
+    requireContext().bindService(serviceIntent, this, Context.BIND_AUTO_CREATE)
+  }
+
+  override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+    Log.d(TAG, "onServiceConnected")
+    engineBinder = (service as? IIPCEngine)
+    engineBinder?.registerGroupCallback(groupCallback)
+  }
+
+  private val groupCallback = object : IGroupCallback.Stub() {
+    override fun onGroupJoinSuccess() {
+      // We've successfully joined the group! Hurray!
+      Log.d(TAG, "We've successfully joined the group!")
+      findNavController().navigate(R.id.homeFragment)
+    }
+
+    override fun onNewPeerConnected(commonInfo: String) {
+      // This isn't for us
+    }
+  }
+
+  override fun onServiceDisconnected(name: ComponentName?) {
+    engineBinder = null
   }
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -144,8 +174,11 @@ class JoinGroupFragment : Fragment() {
   override fun onDestroyView() {
     super.onDestroyView()
     _binding = null
-    groupSync.close()
   }
 
-
+  override fun onStop() {
+    super.onStop()
+    engineBinder?.unregisterGroupCallback()
+    requireContext().unbindService(this)
+  }
 }

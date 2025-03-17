@@ -55,6 +55,10 @@ class SyncEngineService : Service() {
     override fun registerGroupCallback(callback: IGroupCallback) {
       groupCallback = callback
     }
+
+    override fun unregisterGroupCallback() {
+      groupCallback = null
+    }
   }
 
   override fun onBind(intent: Intent?): IBinder = binder

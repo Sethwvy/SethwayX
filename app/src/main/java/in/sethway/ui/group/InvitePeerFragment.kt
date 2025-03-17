@@ -28,20 +28,20 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorColors
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorFrameShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
-import `in`.sethway.databinding.FragmentMyGroupBinding
+import `in`.sethway.databinding.FragmentInvitePeerBinding
 import `in`.sethway.engine.SyncEngineService
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
 import kotlinx.coroutines.Runnable
 import org.json.JSONObject
 
-class MyGroupFragment : Fragment(), ServiceConnection {
+class InvitePeerFragment : Fragment(), ServiceConnection {
 
   companion object {
     private const val TAG = "MyGroupFragment"
   }
 
-  private var _binding: FragmentMyGroupBinding? = null
+  private var _binding: FragmentInvitePeerBinding? = null
   private val binding get() = _binding!!
 
   private var engineBinder: IIPCEngine? = null
@@ -50,7 +50,7 @@ class MyGroupFragment : Fragment(), ServiceConnection {
     inflater: LayoutInflater, container: ViewGroup?,
     savedInstanceState: Bundle?
   ): View {
-    _binding = FragmentMyGroupBinding.inflate(inflater)
+    _binding = FragmentInvitePeerBinding.inflate(inflater)
     return binding.root
   }
 
@@ -153,13 +153,10 @@ class MyGroupFragment : Fragment(), ServiceConnection {
     _binding = null
   }
 
-  override fun onDestroy() {
-    super.onDestroy()
-  }
-
   override fun onStop() {
     super.onStop()
-
+    engineBinder?.unregisterGroupCallback()
+    requireContext().unbindService(this)
   }
 
 }

@@ -42,9 +42,9 @@
 
     <fragment
         android:id="@+id/myGroupFragment"
-        android:name="in.sethway.ui.group.MyGroupFragment"
+        android:name="in.sethway.ui.group.InvitePeerFragment"
         android:label="fragment_my_group"
-        tools:layout="@layout/fragment_my_group">
+        tools:layout="@layout/fragment_invite_peer">
         <argument
             android:name="create_group"
             app:argType="boolean" />
