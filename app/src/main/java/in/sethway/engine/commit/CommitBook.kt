@@ -1,6 +1,5 @@
 package `in`.sethway.engine.commit
 
-import android.util.Log
 import `in`.sethway.engine.commit.Commit.Companion.toCommit
 import io.paperdb.Book
 import io.paperdb.Paper
@@ -54,43 +53,43 @@ object CommitBook {
     }
   }
 
-  fun getCommitContent(commitKeys: JSONArray): JSONObject {
+  fun getCommit(commitKey: String): JSONObject? {
+    val commit: Commit = commitBook.read(commitKey) ?: return null
+    val content: String = Paper.book(commit.bookName).read(commit.key) ?: return null
+    return JSONObject()
+      .put("commit_info", commit.toJSON())
+      .put("content", content)
+  }
+
+  fun getCommitContent(commitKeys: JSONArray): JSONArray {
     synchronized(lock) {
-      val commitContent = JSONObject()
+      val commits = JSONArray()
       val keyLen = commitKeys.length()
       for (i in 0..<keyLen) {
-        val key = commitKeys.getString(i)
-        val commit: Commit = commitBook.read(key) ?: continue
-        val content: String = Paper.book(commit.bookName).read(commit.key) ?: continue
-
-        commitContent.put(
-          key,
-          JSONObject()
-            .put("commit", commit.toJSON())
-            .put("content", content)
-        )
+        val commitKey = commitKeys.getString(i)
+        getCommit(commitKey)?.let { commits.put(it) }
       }
-      return commitContent
+      return commits
     }
   }
 
-  fun updateCommits(commitContent: JSONObject) {
+  fun updateCommits(commits: JSONArray) {
     synchronized(lock) {
-      for (key in commitContent.keys()) {
-        println("processing commmit key $key")
-        val commitJson = commitContent.getJSONObject(key)
-        println("and its content: $commitJson")
-
-        val newCommit: Commit = commitJson.getJSONObject("commit").toCommit()
-        println("new content: $newCommit")
-        val oldCommit: Commit? = commitBook.read(key)
-
-        if (oldCommit == null || newCommit.commitNumber > oldCommit.commitNumber) {
-          Paper.book(newCommit.bookName).write(key, newCommit)
-          println("writing content to commit key $key")
-          commitBook.write(key, newCommit)
-        }
+      val commitLen = commits.length()
+      for (i in 0..<commitLen) {
+        updateCommit(commits.getJSONObject(i))
       }
+    }
+  }
+
+  fun updateCommit(commitJson: JSONObject) {
+    val newCommit: Commit = commitJson.getJSONObject("commit_info").toCommit()
+    val commitKey = makeCommitKey(newCommit.bookName, newCommit.key)
+    val oldCommit: Commit? = commitBook.read(commitKey)
+
+    if (oldCommit == null || newCommit.commitNumber > oldCommit.commitNumber) {
+      Paper.book(newCommit.bookName).write(newCommit.key, newCommit)
+      commitBook.write(commitKey, newCommit)
     }
   }
 

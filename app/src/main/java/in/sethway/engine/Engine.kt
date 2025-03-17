@@ -97,7 +97,7 @@ class Engine(
     }
 
     smartUDP.route("response_provide_commits") { address, bytes ->
-      val updatedCommitsContent = JSONObject(String(bytes))
+      val updatedCommitsContent = JSONArray(String(bytes))
       CommitBook.updateCommits(updatedCommitsContent)
 
       println("Successfully updated commits content!")
@@ -110,15 +110,26 @@ class Engine(
     smartUDP.route("receive_invitee") { address, bytes ->
       smartUDP.removeRoute("receive_invitee")
 
-      val inviteeInfo = JSONObject(String(bytes))
-      CommitBook.updateCommits(inviteeInfo)
+      val json = JSONObject(String(bytes))
+      val inviteeCommits = json.getJSONArray("invitee_commits")
+      CommitBook.updateCommits(inviteeCommits)
 
-      val inviteeCommonInfo = inviteeInfo.getJSONObject("peer_common_info")
+      val inviteeCommonInfo = json.getJSONObject("invitee_common_info")
       val inviteeDisplayName = inviteeCommonInfo.getString("display_name")
 
       executor.submit {
         trySafe {
-          smartUDP.message(address, ENGINE_PORT, "Yep!".toByteArray(), "receive_success")
+          val replyPayload = JSONObject()
+            .put("group_info", group.getGroup())
+            .put("inviter_commits", group.shareSelf())
+            .toString()
+            .toByteArray()
+          smartUDP.message(
+            address,
+            ENGINE_PORT,
+            replyPayload,
+            "receive_success"
+          )
         }
       }
 
@@ -131,29 +142,36 @@ class Engine(
   }
 
   // We (the invitee) have scanned the QR Code, awaiting for confirmation
-  private fun sayHiInviter() {
+  fun acceptGroupInvite(addresses: JSONArray) {
     smartUDP.route("receive_success") { address, bytes ->
       smartUDP.removeRoute("receive_success")
+
+      val json = JSONObject(String(bytes))
+
+      val groupInfo = json.getJSONObject("group_info")
+      group.createGroup(groupInfo.getString("group_id"), groupInfo.getString("creator"))
+
+      val inviterCommits = json.getJSONArray("inviter_commits")
+      CommitBook.updateCommits(inviterCommits)
+
       Log.d(TAG, "Joined group successfully!")
       Handler(Looper.getMainLooper()).post {
         groupCallback()?.onGroupJoinSuccess()
       }
       null
     }
-    println("here!")
     executor.submit {
-      println("here2")
-      val selfCommitInfo = group.shareSelf().toString().toByteArray()
-      println("here3")
-
-      forEachPeerAddress { address ->
-        println("Sending receive me ping $address")
-        smartUDP.message(
-          address,
-          ENGINE_PORT,
-          selfCommitInfo,
-          "receive_invitee"
-        )
+      val payload = JSONObject()
+        .put("invitee_commits", group.shareSelf())
+        .put("invitee_common_info", getMyCommonInfo())
+        .toString()
+        .toByteArray()
+      val addrLen = addresses.length()
+      for (i in 0..<addrLen) {
+        trySafe {
+          val address = InetAddress.getByName(addresses.getString(i))
+          smartUDP.message(address, ENGINE_PORT, payload, "receive_invitee")
+        }
       }
     }
   }
@@ -162,23 +180,7 @@ class Engine(
     group.createGroup(groupId, myId)
   }
 
-  fun getGroupInvitation(): JSONObject = JSONObject()
-    .put("group_info", group.getGroup())
-    .put("commit_content", group.shareSelf())
-
-  fun acceptGroupInvite(invitation: JSONObject) {
-    println("processing invitation $invitation")
-
-    val groupInfo = invitation.getJSONObject("group_info")
-    group.createGroup(groupInfo.getString("group_id"), groupInfo.getString("creator"))
-
-    val inviterCommits = invitation.getJSONObject("commit_content")
-    CommitBook.updateCommits(inviterCommits)
-
-    println("processing content $inviterCommits")
-    println("commits updated!")
-    sayHiInviter()
-  }
+  fun getGroupInvitation(): JSONArray = InetQuery.addresses()
 
   fun commitNewEntry(entry: JSONObject) {
     // That's it! This commit should auto propagate with sync packets!

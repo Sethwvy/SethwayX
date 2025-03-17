@@ -16,10 +16,19 @@ class Group(private val myId: String) {
   private val peerInfoBook = Paper.book("peer_info")
   private val peerCommonInfoBook = Paper.book("peer_common_info")
 
+  val exists: Boolean get() = groupBook.contains("group_id")
+
+  val amCreator: Boolean
+    get() = synchronized(lock) {
+      groupBook.read("am_creator", false)!!
+    }
+
   fun createGroup(groupId: String, creator: String) {
     synchronized(lock) {
       groupBook.write("group_id", groupId)
       groupBook.write("creator", creator)
+
+      groupBook.write("am_creator", creator == myId)
     }
   }
 
@@ -38,7 +47,7 @@ class Group(private val myId: String) {
     }
   }
 
-  fun shareSelf(): JSONObject {
+  fun shareSelf(): JSONArray {
     synchronized(lock) {
       val commitsToShare = JSONArray().apply {
         put(makeCommitKey("peer_info", myId))

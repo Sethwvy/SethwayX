@@ -19,10 +19,15 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import `in`.sethway.App
+import `in`.sethway.App.Companion.GROUP
 import `in`.sethway.R
 import `in`.sethway.databinding.DialogPickNameBinding
 import `in`.sethway.databinding.FragmentWelcomeBinding
 import `in`.sethway.engine.SyncEngineService
+import `in`.sethway.engine.group.Group
+import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
+import io.paperdb.Paper
 
 class WelcomeFragment : Fragment() {
 
@@ -36,14 +41,13 @@ class WelcomeFragment : Fragment() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-//    if (Group.inGroup()) {
-//      // A group exists, meaning there was some activity!
-//      if (Group.isGroupCreator() && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())) {
-//        findNavController().navigate(R.id.manageNotificationPermissionFragment)
-//      } else {
-//        findNavController().navigate(R.id.homeFragment)
-//      }
-//    }
+    if (GROUP.exists) {
+      if (GROUP.amCreator && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())) {
+        findNavController().navigate(R.id.manageNotificationPermissionFragment)
+      } else {
+        findNavController().navigate(R.id.homeFragment)
+      }
+    }
     val serviceIntent = Intent(requireContext(), SyncEngineService::class.java)
     ContextCompat.startForegroundService(requireContext(), serviceIntent)
   }

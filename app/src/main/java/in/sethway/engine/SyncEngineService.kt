@@ -16,6 +16,7 @@ import `in`.sethway.R
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
 import io.paperdb.Paper
+import org.json.JSONArray
 import org.json.JSONObject
 
 class SyncEngineService : Service() {
@@ -49,7 +50,7 @@ class SyncEngineService : Service() {
     override fun getInvite(): String = engine.getGroupInvitation().toString()
 
     override fun acceptInvite(invitation: String) {
-      engine.acceptGroupInvite(JSONObject(invitation))
+      engine.acceptGroupInvite(JSONArray(invitation))
     }
 
     override fun registerGroupCallback(callback: IGroupCallback) {

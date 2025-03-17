@@ -17,6 +17,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 
 import com.github.alexzhirkevich.customqrgenerator.QrData
 import com.github.alexzhirkevich.customqrgenerator.QrErrorCorrectionLevel
@@ -28,8 +29,10 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorColors
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorFrameShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
+import `in`.sethway.R
 import `in`.sethway.databinding.FragmentInvitePeerBinding
 import `in`.sethway.engine.SyncEngineService
+import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
 import kotlinx.coroutines.Runnable
@@ -44,6 +47,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
   private var _binding: FragmentInvitePeerBinding? = null
   private val binding get() = _binding!!
 
+  private var isGroupCreator = false
   private var engineBinder: IIPCEngine? = null
 
   override fun onCreateView(
@@ -80,6 +84,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
   private fun updateQRCode() {
     val inviteInfo = engineBinder?.getInvite()
+    println(inviteInfo)
     binding.apply {
       if (inviteInfo == null) {
         qrImageView.visibility = View.GONE
@@ -105,6 +110,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
     val groupId = requireArguments().getString("group_id")!!
     engineBinder?.apply {
+      isGroupCreator = true
       createGroup(groupId)
       receiveInvitee()
       registerGroupCallback(groupCallback)
@@ -118,10 +124,21 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
       val displayName = jsonInfo.getString("display_name")
       Log.d(TAG, "Peer successfully added $displayName")
 
-      Toast.makeText(
-        requireContext(),
-        "$displayName was added to the group", Toast.LENGTH_LONG
-      ).show()
+      requireActivity().runOnUiThread {
+        Toast.makeText(
+          requireContext(),
+          "$displayName was added to the group", Toast.LENGTH_LONG
+        ).show()
+      }
+
+      if (isGroupCreator && !ManageNotificationPermissionFragment.canManageNotifications(
+          requireContext()
+        )
+      ) {
+        findNavController().navigate(R.id.manageNotificationPermissionFragment)
+      } else {
+        findNavController().navigate(R.id.homeFragment)
+      }
     }
 
     override fun onGroupJoinSuccess() {
