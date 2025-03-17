@@ -67,7 +67,7 @@ class JoinGroupFragment : Fragment(), ServiceConnection {
 
   override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
     Log.d(TAG, "onServiceConnected")
-    engineBinder = (service as? IIPCEngine)
+    engineBinder = IIPCEngine.Stub.asInterface(service)
     engineBinder?.registerGroupCallback(groupCallback)
   }
 

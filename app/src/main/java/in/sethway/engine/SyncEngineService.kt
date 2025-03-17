@@ -70,7 +70,7 @@ class SyncEngineService : Service() {
     super.onCreate()
     Paper.init(this)
     notificationManager = getSystemService(NotificationManager::class.java)
-    engine = Engine() { groupCallback }
+    engine = Engine(this) { groupCallback }
     registerReceiver()
   }
 

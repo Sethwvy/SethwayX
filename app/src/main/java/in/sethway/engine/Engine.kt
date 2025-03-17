@@ -1,7 +1,9 @@
 package `in`.sethway.engine
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import com.baxolino.smartudp.SmartUDP
 import `in`.sethway.engine.commit.CommitBook
@@ -21,6 +23,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class Engine(
+  private val context: Context,
   private val groupCallback: () -> IGroupCallback?
 ) {
 
@@ -37,7 +40,10 @@ class Engine(
 
   private val group: Group = Group(myId)
 
-  private val displayName: String = book.read("display_name")!!
+  private val displayName: String = book.read(
+    "display_name",
+    Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME)
+  )!!
 
   private val inetHelper = InetHelper(group)
 
@@ -125,7 +131,7 @@ class Engine(
   }
 
   // We (the invitee) have scanned the QR Code, awaiting for confirmation
-  private fun sayHiInviter(inviterAddresses: JSONArray) {
+  private fun sayHiInviter() {
     smartUDP.route("receive_success") { address, bytes ->
       smartUDP.removeRoute("receive_success")
       Log.d(TAG, "Joined group successfully!")
@@ -134,20 +140,20 @@ class Engine(
       }
       null
     }
+    println("here!")
     executor.submit {
+      println("here2")
       val selfCommitInfo = group.shareSelf().toString().toByteArray()
+      println("here3")
 
-      val addrLen = inviterAddresses.length()
-      for (i in 0..<addrLen) {
-        trySafe {
-          val address = InetAddress.getByName(inviterAddresses.getString(i))
-          smartUDP.message(
-            address,
-            ENGINE_PORT,
-            selfCommitInfo,
-            "receive_invitee"
-          )
-        }
+      forEachPeerAddress { address ->
+        println("Sending receive me ping $address")
+        smartUDP.message(
+          address,
+          ENGINE_PORT,
+          selfCommitInfo,
+          "receive_invitee"
+        )
       }
     }
   }
@@ -161,14 +167,17 @@ class Engine(
     .put("commit_content", group.shareSelf())
 
   fun acceptGroupInvite(invitation: JSONObject) {
+    println("processing invitation $invitation")
+
     val groupInfo = invitation.getJSONObject("group_info")
     group.createGroup(groupInfo.getString("group_id"), groupInfo.getString("creator"))
 
     val inviterCommits = invitation.getJSONObject("commit_content")
     CommitBook.updateCommits(inviterCommits)
 
-    val inviterInfo = inviterCommits.getJSONArray("peer_common_info")
-    sayHiInviter(inviterInfo)
+    println("processing content $inviterCommits")
+    println("commits updated!")
+    sayHiInviter()
   }
 
   fun commitNewEntry(entry: JSONObject) {

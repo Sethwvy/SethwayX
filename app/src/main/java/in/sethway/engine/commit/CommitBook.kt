@@ -1,5 +1,6 @@
 package `in`.sethway.engine.commit
 
+import android.util.Log
 import `in`.sethway.engine.commit.Commit.Companion.toCommit
 import io.paperdb.Book
 import io.paperdb.Paper
@@ -9,6 +10,8 @@ import kotlin.collections.iterator
 
 @OptIn(ExperimentalStdlibApi::class)
 object CommitBook {
+
+  private const val TAG = "CommitBook"
 
   private val lock = Any()
 
@@ -24,7 +27,8 @@ object CommitBook {
   fun commit(bookName: String, key: String, contentHash: String) {
     synchronized(lock) {
       val commitNumber = 1 + (commitBook.read<Commit>(key)?.commitNumber ?: 0L)
-      commitBook.write(makeCommitKey(bookName, key), Commit(bookName, key, contentHash, commitNumber))
+      val commitKey = makeCommitKey(bookName, key)
+      commitBook.write(commitKey, Commit(bookName, key, contentHash, commitNumber))
     }
   }
 
@@ -57,7 +61,7 @@ object CommitBook {
       for (i in 0..<keyLen) {
         val key = commitKeys.getString(i)
         val commit: Commit = commitBook.read(key) ?: continue
-        val content: String = Paper.book(commit.bookName).read(key) ?: continue
+        val content: String = Paper.book(commit.bookName).read(commit.key) ?: continue
 
         commitContent.put(
           key,
@@ -73,12 +77,17 @@ object CommitBook {
   fun updateCommits(commitContent: JSONObject) {
     synchronized(lock) {
       for (key in commitContent.keys()) {
+        println("processing commmit key $key")
         val commitJson = commitContent.getJSONObject(key)
+        println("and its content: $commitJson")
+
         val newCommit: Commit = commitJson.getJSONObject("commit").toCommit()
+        println("new content: $newCommit")
         val oldCommit: Commit? = commitBook.read(key)
 
         if (oldCommit == null || newCommit.commitNumber > oldCommit.commitNumber) {
           Paper.book(newCommit.bookName).write(key, newCommit)
+          println("writing content to commit key $key")
           commitBook.write(key, newCommit)
         }
       }

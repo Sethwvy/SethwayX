@@ -64,7 +64,7 @@ class PairFragment : Fragment() {
         alertDialog?.cancel()
         val args = Bundle()
         args.putString("group_id", groupNameEditText.text.toString())
-        findNavController().navigate(R.id.createGroupFragment, args)
+        findNavController().navigate(R.id.invitePeerFragment, args)
       }
 
       alertDialog = MaterialAlertDialogBuilder(requireContext())

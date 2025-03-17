@@ -61,16 +61,14 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
     binding.shareButton.setOnClickListener {
       val bitmap = ShareUtils.cardViewToBitmap(binding.qrCardView)
-      ShareUtils.share(requireContext(), bitmap, "Group name: $groupId")
+      ShareUtils.share(requireContext(), bitmap, "Group ID: $groupId")
     }
 
     val handler = Handler(Looper.getMainLooper())
     val qrCodeUpdater = object : Runnable {
       override fun run() {
         try {
-          val inviteInfo = engineBinder?.getInvite()
-          println(inviteInfo)
-          inviteInfo?.let { binding.qrImageView.background = createQRDrawable(it) }
+          updateQRCode()
           handler.postDelayed(this, 2000)
         } catch (_: Throwable) {
 
@@ -78,6 +76,21 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
       }
     }
     qrCodeUpdater.run()
+  }
+
+  private fun updateQRCode() {
+    val inviteInfo = engineBinder?.getInvite()
+    binding.apply {
+      if (inviteInfo == null) {
+        qrImageView.visibility = View.GONE
+        qrCodeProgress.visibility = View.VISIBLE
+      } else {
+        qrCodeProgress.visibility = View.GONE
+        qrImageView.visibility = View.VISIBLE
+        qrImageView.background = createQRDrawable(inviteInfo)
+      }
+    }
+    inviteInfo?.let { binding.qrImageView.background = createQRDrawable(it) }
   }
 
   override fun onStart() {
@@ -88,7 +101,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
   override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
     Log.d(TAG, "onServiceConnected")
-    engineBinder = (service as? IIPCEngine)
+    engineBinder = IIPCEngine.Stub.asInterface(service)
 
     val groupId = requireArguments().getString("group_id")!!
     engineBinder?.apply {
@@ -96,6 +109,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
       receiveInvitee()
       registerGroupCallback(groupCallback)
     }
+    updateQRCode()
   }
 
   private val groupCallback = object : IGroupCallback.Stub() {
