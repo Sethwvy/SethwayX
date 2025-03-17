@@ -130,6 +130,12 @@ class Engine {
     group.createGroup(groupId, creator)
   }
 
+  fun getInviteCommit(): JSONObject = group.shareSelf()
+
+  fun acceptInviteCommit(inviteCommit: JSONObject) {
+    CommitBook.updateCommits(inviteCommit)
+  }
+
   fun commitNewEntry(entry: JSONObject) {
     // That's it! This commit should auto propagate with sync packets!
     entries.commit("${System.currentTimeMillis()}", entry.toString())

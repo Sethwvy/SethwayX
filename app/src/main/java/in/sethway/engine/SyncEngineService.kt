@@ -7,11 +7,15 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Binder
 import android.os.Build
+import android.os.IBinder
+import android.os.Process
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import `in`.sethway.R
 import io.paperdb.Paper
+import org.json.JSONObject
 
 class SyncEngineService : Service() {
 
@@ -21,11 +25,31 @@ class SyncEngineService : Service() {
 
   public inner class EntryReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-      // TODO: we have to commit the entry
+      val entry = JSONObject(intent.getStringExtra("entry")!!)
+      engine.commitNewEntry(entry)
     }
   }
 
   private val entryReceiver = EntryReceiver()
+
+  private val binder = object : Binder(), IIPCEngine {
+    override fun getPid(): Int = Process.myPid()
+
+    override fun createNewGroup(groupId: String) {
+      engine.createNewGroup(groupId)
+    }
+
+    override fun joinGroup(groupId: String, creator: String) {
+      engine.joinGroup(groupId, creator)
+    }
+
+    override fun getInvite(): String = engine.getInviteCommit().toString()
+    override fun acceptInvite(invite: String) {
+      engine.acceptInviteCommit(JSONObject(invite))
+    }
+  }
+
+  override fun onBind(intent: Intent?): IBinder = binder
 
   private lateinit var notificationManager: NotificationManager
   private lateinit var engine: Engine
@@ -47,6 +71,7 @@ class SyncEngineService : Service() {
 
   override fun onDestroy() {
     super.onDestroy()
+    engine.close()
     try {
       unregisterReceiver(entryReceiver)
     } catch (_: Exception) {
@@ -78,5 +103,4 @@ class SyncEngineService : Service() {
     }
   }
 
-  override fun onBind(intent: Intent?) = null
 }

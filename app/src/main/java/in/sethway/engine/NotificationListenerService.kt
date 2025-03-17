@@ -4,10 +4,7 @@ import android.content.Intent
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import com.tencent.mmkv.MMKV
-import `in`.sethway.App
 import kotlinx.coroutines.DelicateCoroutinesApi
-import org.json.JSONArray
 import org.json.JSONObject
 
 class NotificationListenerService : NotificationListenerService() {
@@ -16,29 +13,16 @@ class NotificationListenerService : NotificationListenerService() {
     const val TAG = "SethwayListener"
   }
 
-  //private lateinit var mmkv: MMKV
-
-  override fun onCreate() {
-    super.onCreate()
-    App.initMMKV()
-    //mmkv = MMKV.mmkvWithID("broadcast_backlog")
-  }
-
   @OptIn(DelicateCoroutinesApi::class)
   override fun onNotificationPosted(sbn: StatusBarNotification) {
-    val entry = createNotificationEntry(sbn)
+    val entry: JSONObject? = createNotificationEntry(sbn)
     if (entry == null) {
       Log.d(TAG, "Could not prepare entry, ignoring")
       return
     }
 
-    //val backlog = JSONArray(mmkv.decodeString("entries", "[]"))
-    //backlog.put(entry)
-    //mmkv.encode("entries", backlog.toString())
-    //mmkv.encode("last_updated", System.currentTimeMillis())
-
     sendBroadcast(
-      Intent("sethway_broadcast_entry")
+      Intent(SyncEngineService.ENTRY_RECEIVER_ACTION)
         .putExtra("entry", entry.toString())
         .setPackage(packageName)
     )
