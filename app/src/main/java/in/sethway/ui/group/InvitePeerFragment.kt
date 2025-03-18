@@ -129,15 +129,15 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
           requireContext(),
           "$displayName was added to the group", Toast.LENGTH_LONG
         ).show()
-      }
 
-      if (isGroupCreator && !ManageNotificationPermissionFragment.canManageNotifications(
-          requireContext()
-        )
-      ) {
-        findNavController().navigate(R.id.manageNotificationPermissionFragment)
-      } else {
-        findNavController().navigate(R.id.homeFragment)
+        if (isGroupCreator && !ManageNotificationPermissionFragment.canManageNotifications(
+            requireContext()
+          )
+        ) {
+          findNavController().navigate(R.id.manageNotificationPermissionFragment)
+        } else {
+          findNavController().navigate(R.id.homeFragment)
+        }
       }
     }
 

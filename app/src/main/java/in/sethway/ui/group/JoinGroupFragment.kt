@@ -75,7 +75,7 @@ class JoinGroupFragment : Fragment(), ServiceConnection {
     override fun onGroupJoinSuccess() {
       // We've successfully joined the group! Hurray!
       Log.d(TAG, "We've successfully joined the group!")
-      findNavController().navigate(R.id.homeFragment)
+      requireActivity().runOnUiThread { findNavController().navigate(R.id.homeFragment) }
     }
 
     override fun onNewPeerConnected(commonInfo: String) {

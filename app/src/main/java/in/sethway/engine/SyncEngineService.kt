@@ -93,6 +93,7 @@ class SyncEngineService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    println("onStartCommand")
     createForeground()
     return START_STICKY
   }
@@ -113,6 +114,7 @@ class SyncEngineService : Service() {
           .setSmallIcon(R.drawable.sync)
           .build()
       )
+      println("startForeground() called!")
     }
   }
 
