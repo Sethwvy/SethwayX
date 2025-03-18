@@ -8,7 +8,7 @@ object CommitHelper {
   private val digest = MessageDigest.getInstance("SHA-256")
 
   @OptIn(ExperimentalStdlibApi::class)
-  private fun String.commitHash() = digest.digest(toByteArray()).toHexString()
+  fun String.commitHash() = digest.digest(toByteArray()).toHexString()
 
   private val books = HashMap<Book, String>()
 
@@ -23,11 +23,11 @@ object CommitHelper {
     }
   }
 
-  fun Book.commit(key: String, content: String) {
+  fun Book.commit(key: String, content: String, static: Boolean = false) {
     write(key, content)
     val contentHash = content.commitHash()
     val bookName =
       books[this] ?: throw RuntimeException("Could not find book (was writing key=$key)")
-    CommitBook.commit(bookName, key, contentHash)
+    CommitBook.commit(bookName, key, contentHash, static)
   }
 }

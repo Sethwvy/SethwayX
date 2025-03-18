@@ -6,26 +6,29 @@ import org.json.JSONObject
 data class Commit(
   val bookName: String,
   val key: String,
-  val contentHash: String,
-  val commitNumber: Long
+  val contentHash: String? = null,
+  val commitNumber: Long = -1
 ) {
 
   companion object {
-    fun JSONObject.toCommit(): Commit {
+    fun JSONObject.toCommit(bookName: String): Commit {
       return Commit(
-        bookName = getString("book_name"),
+        bookName = bookName,
         key = getString("key"),
-        contentHash = getString("content_hash"),
-        commitNumber = getLong("commit_number")
+        contentHash = if (has("hash")) getString("hash") else null,
+        commitNumber = if (has("commit_no")) getLong("commit_no") else -1
       )
     }
   }
 
   fun toJSON(): JSONObject = JSONObject()
-    .put("book_name", bookName)
     .put("key", key)
-    .put("content_hash", contentHash)
-    .put("commit_number", commitNumber)
+    .also {
+      if (contentHash != null) {
+        it.put("hash", contentHash)
+        it.put("commit_no", commitNumber)
+      }
+    }
 
   fun fetchContent(): String = Paper.book(bookName).read<String>(key)!!
 }

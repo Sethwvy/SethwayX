@@ -59,14 +59,17 @@ class Engine(
     CommitHelper.initBooks()
 
     group.addSelf(InetQuery.addresses().toString(), getMyCommonInfo().toString())
+
+    // Broadcast group info periodically
     scheduledExecutor.scheduleWithFixedDelay({
-      inetHelper.checkForIpChanges()
-      try {
-        syncWithGroup()
-      } catch (t: Throwable) {
-        t.printStackTrace()
-      }
-    }, 0, 2, TimeUnit.SECONDS)
+      trySafe { broadcastCommitBook(group.getGroupCommits()) }
+    }, 0, 20, TimeUnit.SECONDS)
+
+    // broadcasting entry commit book
+    scheduledExecutor.scheduleWithFixedDelay({
+      trySafe { inetHelper.checkForIpChanges() }
+      trySafe { broadcastCommitBook(CommitBook.getCommitBook("entries")) }
+    }, 0, 5, TimeUnit.SECONDS)
 
     smartUDP.route("sync_commit_book") { address, bytes ->
       val json = JSONObject(String(bytes))
@@ -81,6 +84,7 @@ class Engine(
       println("Got sync_commit_book from $displayName")
 
       val theirCommitBook = json.getJSONObject("commit_book")
+      println("Book: $theirCommitBook")
       val ourOutdatedCommitKeys = CommitBook.compareCommits(theirCommitBook)
       if (ourOutdatedCommitKeys.length() > 0) {
         val keysPayload = ourOutdatedCommitKeys.toString().toByteArray()
@@ -92,7 +96,7 @@ class Engine(
     }
 
     smartUDP.route("request_provide_commits") { address, bytes ->
-      val theirOutdatedCommitKeys = JSONArray(String(bytes))
+      val theirOutdatedCommitKeys = JSONObject(String(bytes))
       val updatedCommitsContent = CommitBook.getCommitContent(theirOutdatedCommitKeys)
 
       if (updatedCommitsContent.length() > 0) {
@@ -109,8 +113,8 @@ class Engine(
     }
 
     smartUDP.route("response_provide_commits") { address, bytes ->
-      val updatedCommitsContent = JSONArray(String(bytes))
-      CommitBook.updateCommits(updatedCommitsContent).forEach { commit ->
+      val filteredCommitBook = JSONObject(String(bytes))
+      CommitBook.updateCommits(filteredCommitBook).forEach { commit ->
         if (commit.bookName == "entries") {
           // Oh! It's a new notification entry!
           val notificationContent = JSONObject(commit.fetchContent())
@@ -130,7 +134,7 @@ class Engine(
       smartUDP.removeRoute("receive_invitee")
 
       val json = JSONObject(String(bytes))
-      val inviteeCommits = json.getJSONArray("invitee_commits")
+      val inviteeCommits = json.getJSONObject("invitee_commits")
 
       CommitBook.updateCommits(inviteeCommits)
 
@@ -140,8 +144,8 @@ class Engine(
       executor.submit {
         trySafe {
           val replyPayload = JSONObject()
-            .put("group_info", group.getGroup())
-            .put("inviter_commits", group.shareSelf())
+            .put("group_info", group.getGroupInfo())
+            .put("inviter_commits", group.selfCommits())
             .toString()
             .toByteArray()
           smartUDP.message(
@@ -171,7 +175,7 @@ class Engine(
       val groupInfo = json.getJSONObject("group_info")
       group.createGroup(groupInfo.getString("group_id"), groupInfo.getString("creator"))
 
-      val inviterCommits = json.getJSONArray("inviter_commits")
+      val inviterCommits = json.getJSONObject("inviter_commits")
       CommitBook.updateCommits(inviterCommits)
 
       Log.d(TAG, "Joined group successfully!")
@@ -182,7 +186,7 @@ class Engine(
     }
     executor.submit {
       val payload = JSONObject()
-        .put("invitee_commits", group.shareSelf())
+        .put("invitee_commits", group.selfCommits())
         .put("invitee_common_info", getMyCommonInfo())
         .toString()
         .toByteArray()
@@ -204,14 +208,15 @@ class Engine(
 
   fun commitNewEntry(entry: JSONObject) {
     // That's it! This commit should auto propagate with sync packets!
-    entries.commit("${System.currentTimeMillis()}", entry.toString())
+    entries.commit("${System.currentTimeMillis()}", entry.toString(), static = true)
+    broadcastCommitBook(CommitBook.getCommitBook("entries"))
   }
 
-  private fun syncWithGroup() {
+  private fun broadcastCommitBook(commitBook: JSONObject) {
     val syncPacket = JSONObject()
       .put("packet_id", UUID.randomUUID())
       .put("common_info", getMyCommonInfo())
-      .put("commit_book", CommitBook.getCommitBook())
+      .put("commit_book", commitBook)
       .toString()
       .toByteArray()
     forEachPeerAddress { address ->
@@ -232,11 +237,14 @@ class Engine(
     }
   }
 
-  private fun trySafe(block: () -> Unit) {
+  private fun trySafe(printStackTrace: Boolean = false, block: () -> Unit) {
     try {
       block()
     } catch (e: Throwable) {
       Log.d(TAG, "[Ignored Throwable] ${e::class.simpleName} ${e.message}")
+      if (printStackTrace) {
+        e.printStackTrace()
+      }
     }
   }
 

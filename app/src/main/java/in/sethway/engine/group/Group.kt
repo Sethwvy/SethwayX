@@ -1,7 +1,7 @@
 package `in`.sethway.engine.group
 
+import `in`.sethway.engine.commit.CommitBook
 import `in`.sethway.engine.commit.CommitBook.getCommitContent
-import `in`.sethway.engine.commit.CommitBook.makeCommitKey
 import `in`.sethway.engine.commit.CommitHelper.commit
 import io.paperdb.Paper
 import org.json.JSONArray
@@ -32,10 +32,14 @@ class Group(private val myId: String) {
     }
   }
 
-  fun getGroup(): JSONObject = synchronized(lock) {
+  fun getGroupInfo(): JSONObject = synchronized(lock) {
     JSONObject()
       .put("group_id", groupBook.read("group_id"))
       .put("creator", groupBook.read("creator"))
+  }
+
+  fun getGroupCommits(): JSONObject = synchronized(lock) {
+    CommitBook.getCommitBook("peer_info", "peer_common_info")
   }
 
   fun addSelf(peerInfo: String, commonInfo: String) {
@@ -47,13 +51,12 @@ class Group(private val myId: String) {
     }
   }
 
-  fun shareSelf(): JSONArray {
+  fun selfCommits(): JSONObject {
     synchronized(lock) {
-      val commitsToShare = JSONArray().apply {
-        put(makeCommitKey("peer_info", myId))
-        put(makeCommitKey("peer_common_info", myId))
-      }
-      return getCommitContent(commitsToShare)
+      val filteredCommitBook = JSONObject()
+        .put("peer_info", JSONArray().put(myId))
+        .put("peer_common_info", JSONArray().put(myId))
+      return getCommitContent(filteredCommitBook)
     }
   }
 
