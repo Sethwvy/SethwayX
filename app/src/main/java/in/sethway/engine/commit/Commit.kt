@@ -1,5 +1,6 @@
 package `in`.sethway.engine.commit
 
+import io.paperdb.Paper
 import org.json.JSONObject
 
 data class Commit(
@@ -25,4 +26,6 @@ data class Commit(
     .put("key", key)
     .put("content_hash", contentHash)
     .put("commit_number", commitNumber)
+
+  fun fetchContent(): String = Paper.book(bookName).read<String>(key)!!
 }

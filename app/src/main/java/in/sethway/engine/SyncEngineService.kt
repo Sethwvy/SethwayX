@@ -71,7 +71,9 @@ class SyncEngineService : Service() {
     super.onCreate()
     Paper.init(this)
     notificationManager = getSystemService(NotificationManager::class.java)
-    engine = Engine(this) { groupCallback }
+    engine = Engine(this, groupCallback = { groupCallback }, entryConsumer = { entry ->
+      consumeNotificationEntry(entry)
+    })
     registerReceiver()
   }
 
@@ -96,6 +98,28 @@ class SyncEngineService : Service() {
     println("onStartCommand")
     createForeground()
     return START_STICKY
+  }
+
+  private fun consumeNotificationEntry(entry: JSONObject) {
+    val notificationInfo = entry.getJSONObject("notification_info")
+
+    val notificationPackageName = notificationInfo.getString("package_name")
+    val tag = notificationInfo.getString("tag")
+    val id = notificationInfo.getInt("id")
+
+    val notificationContent = entry.getJSONObject("notification_content")
+
+    val title = notificationContent.getString("title")
+    val text = notificationContent.getString("text")
+
+    notificationManager.notify(
+      tag, id,
+      NotificationCompat.Builder(this, "sync_engine")
+        .setContentTitle(title)
+        .setContentText(text)
+        .setSmallIcon(R.drawable.mark_email_unred)
+        .build()
+    )
   }
 
   private fun createForeground() {

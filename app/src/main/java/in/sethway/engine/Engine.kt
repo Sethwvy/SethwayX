@@ -23,8 +23,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class Engine(
-  private val context: Context,
-  private val groupCallback: () -> IGroupCallback?
+  context: Context,
+  private val groupCallback: () -> IGroupCallback?,
+  private val entryConsumer: (JSONObject) -> Unit
 ) {
 
   companion object {
@@ -60,7 +61,11 @@ class Engine(
     group.addSelf(InetQuery.addresses().toString(), getMyCommonInfo().toString())
     scheduledExecutor.scheduleWithFixedDelay({
       inetHelper.checkForIpChanges()
-      syncWithGroup()
+      try {
+        syncWithGroup()
+      } catch (t: Throwable) {
+        t.printStackTrace()
+      }
     }, 0, 2, TimeUnit.SECONDS)
 
     smartUDP.route("sync_commit_book") { address, bytes ->
@@ -76,31 +81,45 @@ class Engine(
       println("Got sync_commit_book from $displayName")
 
       val theirCommitBook = json.getJSONObject("commit_book")
-      val ourOutdatedCommitKeys =
-        CommitBook.compareCommits(theirCommitBook).toString().toByteArray()
-
-      trySafe {
-        smartUDP.message(address, ENGINE_PORT, ourOutdatedCommitKeys, "request_provide_commits")
+      val ourOutdatedCommitKeys = CommitBook.compareCommits(theirCommitBook)
+      if (ourOutdatedCommitKeys.length() > 0) {
+        val keysPayload = ourOutdatedCommitKeys.toString().toByteArray()
+        trySafe {
+          smartUDP.message(address, ENGINE_PORT, keysPayload, "request_provide_commits")
+        }
       }
       null
     }
 
     smartUDP.route("request_provide_commits") { address, bytes ->
       val theirOutdatedCommitKeys = JSONArray(String(bytes))
-      val updatedCommitsContent =
-        CommitBook.getCommitContent(theirOutdatedCommitKeys).toString().toByteArray()
+      val updatedCommitsContent = CommitBook.getCommitContent(theirOutdatedCommitKeys)
 
-      trySafe {
-        smartUDP.message(address, ENGINE_PORT, updatedCommitsContent, "response_provide_commits")
+      if (updatedCommitsContent.length() > 0) {
+        trySafe {
+          smartUDP.message(
+            address,
+            ENGINE_PORT,
+            updatedCommitsContent.toString().toByteArray(),
+            "response_provide_commits"
+          )
+        }
       }
       null
     }
 
     smartUDP.route("response_provide_commits") { address, bytes ->
       val updatedCommitsContent = JSONArray(String(bytes))
-      CommitBook.updateCommits(updatedCommitsContent)
-
-      println("Successfully updated commits content!")
+      CommitBook.updateCommits(updatedCommitsContent).forEach { commit ->
+        if (commit.bookName == "entries") {
+          // Oh! It's a new notification entry!
+          val notificationContent = JSONObject(commit.fetchContent())
+          Handler(Looper.getMainLooper()).post {
+            entryConsumer(notificationContent)
+          }
+        }
+      }
+      println("Commits were updated")
       null
     }
   }
@@ -112,6 +131,7 @@ class Engine(
 
       val json = JSONObject(String(bytes))
       val inviteeCommits = json.getJSONArray("invitee_commits")
+
       CommitBook.updateCommits(inviteeCommits)
 
       val inviteeCommonInfo = json.getJSONObject("invitee_common_info")
@@ -203,7 +223,7 @@ class Engine(
     val peerInfo = group.getEachPeerInfo()
     for (peerId in peerInfo.keys()) {
       if (peerId == myId) continue
-      val addresses = peerInfo.getJSONArray(peerId)
+      val addresses = JSONArray(peerInfo.getString(peerId))
       val addrLen = addresses.length()
       for (i in 0..<addrLen) {
         val address = addresses.getString(i)

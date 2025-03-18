@@ -73,24 +73,29 @@ object CommitBook {
     }
   }
 
-  fun updateCommits(commits: JSONArray) {
+  fun updateCommits(newCommits: JSONArray): List<Commit> {
     synchronized(lock) {
-      val commitLen = commits.length()
+      val commits = ArrayList<Commit>()
+      val commitLen = newCommits.length()
       for (i in 0..<commitLen) {
-        updateCommit(commits.getJSONObject(i))
+        updateCommit(newCommits.getJSONObject(i))?.let { commits.add(it) }
       }
+      return commits
     }
   }
 
-  fun updateCommit(commitJson: JSONObject) {
+  fun updateCommit(commitJson: JSONObject): Commit? {
     val newCommit: Commit = commitJson.getJSONObject("commit_info").toCommit()
     val commitKey = makeCommitKey(newCommit.bookName, newCommit.key)
     val oldCommit: Commit? = commitBook.read(commitKey)
 
     if (oldCommit == null || newCommit.commitNumber > oldCommit.commitNumber) {
-      Paper.book(newCommit.bookName).write(newCommit.key, newCommit)
+      val content = commitJson.getString("content")
+      Paper.book(newCommit.bookName).write(newCommit.key, content)
       commitBook.write(commitKey, newCommit)
+      return newCommit
     }
+    return null
   }
 
   fun getCommitBook(): JSONObject {
