@@ -9,6 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import `in`.sethway.R
 import `in`.sethway.databinding.FragmentHomeBinding
 
 //import `in`.sethway.engine.group_old.Group
@@ -40,15 +42,9 @@ class HomeFragment : Fragment() {
 //      binding.manageGroupLabel.text = "Manage my group"
 //    }
 //
-//    withAnimation(binding.devicesCard) {
-//      if (Group.isGroupCreator() && Group.isGroupEmpty()) {
-//        // Directly open fragment to add a new peer
-//        findNavController().navigate(R.id.manageGroupFragment)
-//      } else {
-//        // Open Manage Group fragment
-//        findNavController().navigate(R.id.myGroupFragment)
-//      }
-//    }
+    withAnimation(binding.devicesCard) {
+      findNavController().navigate(R.id.invitePeerFragment)
+    }
   }
 
   @SuppressLint("ClickableViewAccessibility")

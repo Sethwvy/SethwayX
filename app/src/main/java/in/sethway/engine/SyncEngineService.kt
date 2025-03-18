@@ -8,7 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.Process
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -18,6 +20,7 @@ import inx.sethway.IIPCEngine
 import io.paperdb.Paper
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicReference
 
 class SyncEngineService : Service() {
 
@@ -34,7 +37,7 @@ class SyncEngineService : Service() {
 
   private val entryReceiver = EntryReceiver()
 
-  private var groupCallback: IGroupCallback? = null
+  private var groupCallback = AtomicReference<IGroupCallback>()
 
   private val binder = object : IIPCEngine.Stub() {
     override fun getPid(): Int = Process.myPid()
@@ -54,11 +57,11 @@ class SyncEngineService : Service() {
     }
 
     override fun registerGroupCallback(callback: IGroupCallback) {
-      groupCallback = callback
+      groupCallback.set(callback)
     }
 
     override fun unregisterGroupCallback() {
-      groupCallback = null
+      groupCallback.set(null)
     }
   }
 
@@ -71,7 +74,7 @@ class SyncEngineService : Service() {
     super.onCreate()
     Paper.init(this)
     notificationManager = getSystemService(NotificationManager::class.java)
-    engine = Engine(this, groupCallback = { groupCallback }, entryConsumer = { entry ->
+    engine = Engine(this, groupCallback = { groupCallback.get() }, entryConsumer = { entry ->
       consumeNotificationEntry(entry)
     })
     registerReceiver()

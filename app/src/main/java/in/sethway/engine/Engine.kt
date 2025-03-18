@@ -85,17 +85,15 @@ class Engine(
 
     // checking for changes in our and theirs IPv6 interfaces
     scheduledExecutor.scheduleWithFixedDelay({
-      trySafe {
-        inetHelper.checkForIpChanges()?.let { newAddresses ->
-          // We've got to update the rendezvous point!
-          announceToRendezvous(newAddresses)
-        }
-      }
-      trySafe {
-        // Ensuring we have good updated IP of all the peers
-        ensurePeerIpValidity()
-      }
+      trySafe { inetHelper.checkForIpChanges() }
+      trySafe { ensurePeerIpValidity() }
     }, 0, 2, TimeUnit.SECONDS)
+
+    // Pings to rendezvous server
+    scheduledExecutor.scheduleWithFixedDelay({
+      trySafe { announceToRendezvous(InetQuery.addresses()) }
+      // Ensuring we have good updated IP of all the peers
+    }, 0, 7, TimeUnit.SECONDS)
 
     // Broadcast group info periodically
     scheduledExecutor.scheduleWithFixedDelay({
@@ -213,6 +211,7 @@ class Engine(
         missingPeers.put(peerId)
       }
     }
+    if (missingPeers.length() == 0) return
     val payload = JSONObject()
       .put("reply_port", ENGINE_PORT)
       .put("peer_ids", missingPeers)
@@ -369,6 +368,10 @@ class Engine(
     }
   }
 
+  private fun getMyCommonInfo(): JSONObject = JSONObject()
+    .put("id", myId)
+    .put("display_name", displayName)
+
   private fun trySafe(printStackTrace: Boolean = false, block: () -> Unit) {
     try {
       block()
@@ -379,10 +382,6 @@ class Engine(
       }
     }
   }
-
-  private fun getMyCommonInfo(): JSONObject = JSONObject()
-    .put("id", myId)
-    .put("display_name", displayName)
 
   fun close() {
     smartUDP.close()

@@ -29,9 +29,11 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorColors
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorFrameShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
+import `in`.sethway.App.Companion.GROUP
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentInvitePeerBinding
 import `in`.sethway.engine.SyncEngineService
+import `in`.sethway.engine.group.Group
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
@@ -50,6 +52,11 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
   private var isGroupCreator = false
   private var engineBinder: IIPCEngine? = null
 
+  private var isNewGroup = false
+  private var groupId = ""
+
+  private var amCreator = false
+
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
     savedInstanceState: Bundle?
@@ -60,7 +67,17 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
-    val groupId = requireArguments().getString("group_id")
+
+    groupId = requireArguments().getString("group_id", "")
+    isNewGroup = groupId.isNotEmpty()
+    amCreator = groupId.isNotEmpty()
+
+    if (!isNewGroup) {
+      val groupInfo = GROUP.getGroupInfo()
+      groupId = groupInfo.getString("group_id")
+      amCreator = groupInfo.getBoolean("am_creator")
+    }
+
     binding.groupName.text = groupId
 
     binding.shareButton.setOnClickListener {
@@ -82,9 +99,10 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
     qrCodeUpdater.run()
   }
 
+  private var lastDrawnQrText = ""
+
   private fun updateQRCode() {
     val inviteInfo = engineBinder?.getInvite()
-    println(inviteInfo)
     binding.apply {
       if (inviteInfo == null) {
         qrImageView.visibility = View.GONE
@@ -92,7 +110,13 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
       } else {
         qrCodeProgress.visibility = View.GONE
         qrImageView.visibility = View.VISIBLE
-        qrImageView.background = createQRDrawable(inviteInfo)
+
+        // Only redraw if necessary!
+        if (inviteInfo != lastDrawnQrText) {
+          qrImageView.background = createQRDrawable(inviteInfo)
+          lastDrawnQrText = inviteInfo
+        }
+        // uwu
       }
     }
     inviteInfo?.let { binding.qrImageView.background = createQRDrawable(it) }
@@ -108,14 +132,15 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
     Log.d(TAG, "onServiceConnected")
     engineBinder = IIPCEngine.Stub.asInterface(service)
 
-    val groupId = requireArguments().getString("group_id")!!
     engineBinder?.apply {
-      isGroupCreator = true
-      createGroup(groupId)
       receiveInvitee()
       registerGroupCallback(groupCallback)
+      if (isNewGroup) {
+        createGroup(groupId)
+      }
     }
-    updateQRCode()
+
+    Handler(Looper.getMainLooper()).post { updateQRCode() }
   }
 
   private val groupCallback = object : IGroupCallback.Stub() {
@@ -130,6 +155,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
           "$displayName was added to the group", Toast.LENGTH_LONG
         ).show()
 
+        // We gotta look over here
         if (isGroupCreator && !ManageNotificationPermissionFragment.canManageNotifications(
             requireContext()
           )

@@ -78,6 +78,10 @@ class JoinGroupFragment : Fragment(), ServiceConnection {
       requireActivity().runOnUiThread { findNavController().navigate(R.id.homeFragment) }
     }
 
+    override fun onGroupInfo(groupInfoText: String?) {
+      // Not for us!
+    }
+
     override fun onNewPeerConnected(commonInfo: String) {
       // This isn't for us
     }

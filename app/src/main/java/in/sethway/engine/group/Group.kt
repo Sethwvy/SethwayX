@@ -36,6 +36,7 @@ class Group(private val myId: String) {
     JSONObject()
       .put("group_id", groupBook.read("group_id"))
       .put("creator", groupBook.read("creator"))
+      .put("am_creator", amCreator)
   }
 
   fun getGroupCommits(): JSONObject = synchronized(lock) {
