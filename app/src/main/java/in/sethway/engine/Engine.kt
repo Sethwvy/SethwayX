@@ -22,6 +22,19 @@ import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
+// TODO (Notes)
+//  Solving the problem of ever changing IP address associated with a device
+//  > For every packet received, we need to update the LastKnownGoodIpAddress map of @peerId
+//  > If the @peerId was not recently updated or seen, we'll query the rendezvous server
+//  > We need to also periodically report ourself to rendezvous server to maintain our presence
+//  >
+//  >
+//  Bypassing CGNAT for peer-peer communication
+//  > Each peer must attempt to reach all the peers in the network
+//  > By usual method, if a peer is unable to reach a peer, it needs to utilize UDP Punch-holing
+//  > facilitated by the rendezvous server.
+//  > This configuration can be saved to quickly reconnect in the future
+
 class Engine(
   context: Context,
   private val groupCallback: () -> IGroupCallback?,
@@ -32,10 +45,20 @@ class Engine(
     private const val TAG = "SethwayEngine"
 
     private const val ENGINE_PORT = 8899
+
+    private val RENDEZVOUS_ADDRESSES = arrayOf("2a01:4f9:3081:399c::4", "37.27.51.34")
+    private const val RENDEZVOUS_PORT = 9966
+
+    // Maximum time we can wait before asking rendezvous server to lookup peers
+    private const val MAX_TIME_PEER_OUTAGE = 30 * 1000
   }
 
   private val book = Paper.book()
-  private val entries = Paper.book("entries")
+
+  private val peerLogs = Paper.book("peer_logs")
+  private val peerLastKnownGoodAddress = Paper.book("peer_last_good_addresses")
+
+  private val entryBook = Paper.book("entries")
 
   private val myId: String = book.read("id")!!
 
@@ -60,6 +83,20 @@ class Engine(
 
     group.addSelf(InetQuery.addresses().toString(), getMyCommonInfo().toString())
 
+    // checking for changes in our and theirs IPv6 interfaces
+    scheduledExecutor.scheduleWithFixedDelay({
+      trySafe {
+        inetHelper.checkForIpChanges()?.let { newAddresses ->
+          // We've got to update the rendezvous point!
+          announceToRendezvous(newAddresses)
+        }
+      }
+      trySafe {
+        // Ensuring we have good updated IP of all the peers
+        ensurePeerIpValidity()
+      }
+    }, 0, 2, TimeUnit.SECONDS)
+
     // Broadcast group info periodically
     scheduledExecutor.scheduleWithFixedDelay({
       trySafe { broadcastCommitBook(group.getGroupCommits()) }
@@ -67,7 +104,6 @@ class Engine(
 
     // broadcasting entry commit book
     scheduledExecutor.scheduleWithFixedDelay({
-      trySafe { inetHelper.checkForIpChanges() }
       trySafe { broadcastCommitBook(CommitBook.getCommitBook("entries")) }
     }, 0, 10, TimeUnit.SECONDS)
 
@@ -77,6 +113,12 @@ class Engine(
 
       // we have to avoid burst of multiple packets! (when we have multiple IPs)
       if (recentPacketIds.addNewEntry(packetId, address.hostAddress)) return@route null
+
+      val commonInfo = json.getJSONObject("common_info")
+      val peerId = commonInfo.getString("id")
+
+      peerLogs.write(peerId, System.currentTimeMillis())
+      peerLastKnownGoodAddress.write(peerId, address.hostAddress)
 
       val theirCommitBook = json.getJSONObject("commit_book")
       println("Book: $theirCommitBook")
@@ -131,6 +173,72 @@ class Engine(
         }
       }
       null
+    }
+
+    // A reply from the rendezvous server! He has found peer(s)
+    smartUDP.route("peer_located") { address, bytes ->
+      val peerMap = JSONObject(String(bytes))
+      executor.submit { trySafe { reconnectWithPeers(peerMap) } }
+      null
+    }
+  }
+
+  // Announcing our presence to rendezvous, to let 'them know
+  // our set of IP addresses if we/they get lost
+  private fun announceToRendezvous(newAddresses: JSONArray) {
+    val payload = JSONObject()
+      .put("id", myId)
+      .put("addresses", newAddresses)
+      .toString()
+      .toByteArray()
+    for (rendezvousAddr in RENDEZVOUS_ADDRESSES) {
+      trySafe {
+        smartUDP.message(
+          InetAddress.getByName(rendezvousAddr),
+          RENDEZVOUS_PORT,
+          payload,
+          "announce"
+        )
+      }
+    }
+  }
+
+  private fun ensurePeerIpValidity() {
+    val missingPeers = JSONArray()
+    for (peerId in peerLogs.allKeys) {
+      val peerLastSeen: Long = peerLogs.read(peerId)!!
+      if (System.currentTimeMillis() - peerLastSeen > MAX_TIME_PEER_OUTAGE) {
+        // Oh! The peer has went missing! We must find 'em.
+        // How? Just ask the rendezvous server!
+        missingPeers.put(peerId)
+      }
+    }
+    val payload = JSONObject()
+      .put("reply_port", ENGINE_PORT)
+      .put("peer_ids", missingPeers)
+      .toString()
+      .toByteArray()
+
+    for (rendezvousAddr in RENDEZVOUS_ADDRESSES) {
+      trySafe {
+        smartUDP.message(InetAddress.getByName(rendezvousAddr), RENDEZVOUS_PORT, payload, "lookup")
+      }
+    }
+  }
+
+  // We've got a response from rendezvous server for our lookup request!
+  // Now we got to reconnect with the peers...
+  private fun reconnectWithPeers(peersLocation: JSONObject) {
+    val commitBookPayload = getCommitBookPayload(group.getGroupCommits())
+    for (peerId in peersLocation.keys()) {
+      val peerAddresses = peersLocation.getJSONArray(peerId)
+      val addrLen = peerAddresses.length()
+      for (i in 0..<addrLen) {
+        trySafe {
+          val address = InetAddress.getByName(peerAddresses.getString(i))
+          smartUDP.message(address, ENGINE_PORT, commitBookPayload, "sync_commit_book")
+        }
+      }
     }
   }
 
@@ -215,7 +323,7 @@ class Engine(
   fun commitNewEntry(entry: JSONObject) {
     // That's it! This commit should auto propagate with sync packets!
     val simpleKey = System.currentTimeMillis().toString()
-    entries.commit(simpleKey, entry.toString(), static = true)
+    entryBook.commit(simpleKey, entry.toString(), static = true)
 
     // We can directly send the commit content! Skipping the usual order
     val newEntryContent =
@@ -235,15 +343,18 @@ class Engine(
   }
 
   private fun broadcastCommitBook(commitBook: JSONObject) {
-    val syncPacket = JSONObject()
-      .put("packet_id", UUID.randomUUID())
-      .put("commit_book", commitBook)
-      .toString()
-      .toByteArray()
+    val syncPacket = getCommitBookPayload(commitBook)
     forEachPeerAddress { address ->
       smartUDP.message(address, ENGINE_PORT, syncPacket, "sync_commit_book")
     }
   }
+
+  private fun getCommitBookPayload(commitBook: JSONObject) = JSONObject()
+    .put("packet_id", UUID.randomUUID())
+    .put("commit_book", commitBook)
+    .put("common_info", getMyCommonInfo())
+    .toString()
+    .toByteArray()
 
   private fun forEachPeerAddress(consumer: (InetAddress) -> Unit) {
     val peerInfo = group.getEachPeerInfo()
