@@ -69,7 +69,7 @@ class Engine(
     scheduledExecutor.scheduleWithFixedDelay({
       trySafe { inetHelper.checkForIpChanges() }
       trySafe { broadcastCommitBook(CommitBook.getCommitBook("entries")) }
-    }, 0, 5, TimeUnit.SECONDS)
+    }, 0, 10, TimeUnit.SECONDS)
 
     smartUDP.route("sync_commit_book") { address, bytes ->
       val json = JSONObject(String(bytes))
@@ -78,13 +78,9 @@ class Engine(
       // we have to avoid burst of multiple packets! (when we have multiple IPs)
       if (recentPacketIds.addNewEntry(packetId, address.hostAddress)) return@route null
 
-      val theirCommonInfo = json.getJSONObject("common_info")
-      val displayName = theirCommonInfo.getString("display_name")
-
-      println("Got sync_commit_book from $displayName")
-
       val theirCommitBook = json.getJSONObject("commit_book")
       println("Book: $theirCommitBook")
+
       val ourOutdatedCommitKeys = CommitBook.compareCommits(theirCommitBook)
       if (ourOutdatedCommitKeys.length() > 0) {
         val keysPayload = ourOutdatedCommitKeys.toString().toByteArray()
@@ -98,23 +94,34 @@ class Engine(
     smartUDP.route("request_provide_commits") { address, bytes ->
       val theirOutdatedCommitKeys = JSONObject(String(bytes))
       val updatedCommitsContent = CommitBook.getCommitContent(theirOutdatedCommitKeys)
+      val replyPayload = JSONObject()
+        .put("packet_id", UUID.randomUUID())
+        .put("content", updatedCommitsContent)
+        .toString()
+        .toByteArray()
 
       if (updatedCommitsContent.length() > 0) {
         trySafe {
           smartUDP.message(
             address,
             ENGINE_PORT,
-            updatedCommitsContent.toString().toByteArray(),
-            "response_provide_commits"
+            replyPayload,
+            "provide_commits"
           )
         }
       }
       null
     }
 
-    smartUDP.route("response_provide_commits") { address, bytes ->
-      val filteredCommitBook = JSONObject(String(bytes))
-      CommitBook.updateCommits(filteredCommitBook).forEach { commit ->
+    smartUDP.route("provide_commits") { address, bytes ->
+      val json = JSONObject(String(bytes))
+      val packetId = json.getString("packet_id")
+
+      // Coz we may receive the same packet many times
+      if (recentPacketIds.addNewEntry(packetId, address.hostAddress)) return@route null
+
+      val commitContent = json.getJSONObject("content")
+      CommitBook.updateCommits(commitContent).forEach { commit ->
         if (commit.bookName == "entries") {
           // Oh! It's a new notification entry!
           val notificationContent = JSONObject(commit.fetchContent())
@@ -123,7 +130,6 @@ class Engine(
           }
         }
       }
-      println("Commits were updated")
       null
     }
   }
@@ -208,14 +214,29 @@ class Engine(
 
   fun commitNewEntry(entry: JSONObject) {
     // That's it! This commit should auto propagate with sync packets!
-    entries.commit("${System.currentTimeMillis()}", entry.toString(), static = true)
-    broadcastCommitBook(CommitBook.getCommitBook("entries"))
+    val simpleKey = System.currentTimeMillis().toString()
+    entries.commit(simpleKey, entry.toString(), static = true)
+
+    // We can directly send the commit content! Skipping the usual order
+    val newEntryContent =
+      CommitBook.getCommitContent(JSONObject().put("entries", JSONArray().put(simpleKey)))
+    executor.submit { directlyBroadcastCommitContent(newEntryContent) }
+  }
+
+  private fun directlyBroadcastCommitContent(content: JSONObject) {
+    val payload = JSONObject()
+      .put("packet_id", UUID.randomUUID())
+      .put("content", content)
+      .toString()
+      .toByteArray()
+    forEachPeerAddress { address ->
+      smartUDP.message(address, ENGINE_PORT, payload, "provide_commits")
+    }
   }
 
   private fun broadcastCommitBook(commitBook: JSONObject) {
     val syncPacket = JSONObject()
       .put("packet_id", UUID.randomUUID())
-      .put("common_info", getMyCommonInfo())
       .put("commit_book", commitBook)
       .toString()
       .toByteArray()

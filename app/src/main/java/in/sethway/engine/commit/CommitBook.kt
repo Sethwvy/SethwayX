@@ -48,14 +48,14 @@ object CommitBook {
 
         for (i in 0..<commitLen) {
           val theirCommit: Commit = commits.getJSONObject(i).toCommit(bookName)
-          val key = theirCommit.key
-          val commitKey = makeCommitKey(bookName, key)
+          val simpleKey = theirCommit.key
+          val commitKey = makeCommitKey(bookName, simpleKey)
           val ourCommit: Commit? = commitBook.read(commitKey)
 
           if (ourCommit == null || theirCommit.commitNumber > ourCommit.commitNumber) {
             val keyBook =
               if (outdatedBookKeys.has(bookName)) outdatedBookKeys.getJSONArray(bookName) else JSONArray()
-            keyBook.put(key)
+            keyBook.put(simpleKey)
 
             outdatedBookKeys.put(bookName, keyBook)
           }

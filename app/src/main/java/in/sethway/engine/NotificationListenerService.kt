@@ -31,6 +31,9 @@ class NotificationListenerService : NotificationListenerService() {
   private fun createNotificationEntry(sbn: StatusBarNotification): JSONObject? {
     val extras = sbn.notification.extras
 
+    // Don't include notifications from our app
+    if (sbn.packageName == packageName) return null
+
     val signature = "${System.currentTimeMillis()} ${sbn.packageName} ${sbn.tag} ${sbn.id}"
     Log.d(TAG, "Signature: $signature")
 
