@@ -61,6 +61,9 @@ dependencies {
   implementation("com.github.f4b6a3:uuid-creator:6.0.0")
 
   implementation("com.github.XomaDev:Smart-UDP:00df31fc80")
+
+  implementation("com.squareup.okhttp3:okhttp:4.12.0")
+  implementation("me.zhanghai.android.fastscroll:library:1.3.0")
   implementation(libs.play.services.mlkit.barcode.scanning)
 
   testImplementation(libs.junit)

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/welcomeFragment">
+    app:startDestination="@id/filterFragment">
 
     <fragment
         android:id="@+id/welcomeFragment"
@@ -56,4 +56,9 @@
         android:id="@+id/manageGroupFragment"
         android:name="in.sethway.ui.group.ManageGroupFragment"
         android:label="ManageGroupFragment" />
+    <fragment
+        android:id="@+id/filterFragment"
+        android:name="in.sethway.ui.filter.FilterFragment"
+        android:label="fragment_filter"
+        tools:layout="@layout/fragment_filter" />
 </navigation>

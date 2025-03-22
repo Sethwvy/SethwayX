@@ -1,9 +1,8 @@
 package `in`.sethway.engine
 
-import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.util.Log
 import com.baxolino.smartudp.SmartUDP
 import `in`.sethway.engine.commit.CommitBook
@@ -36,7 +35,6 @@ import java.util.concurrent.TimeUnit
 //  > This configuration can be saved to quickly reconnect in the future
 
 class Engine(
-  context: Context,
   private val groupCallback: () -> IGroupCallback?,
   private val entryConsumer: (JSONObject) -> Unit
 ) {
@@ -60,14 +58,11 @@ class Engine(
 
   private val entryBook = Paper.book("entries")
 
-  private val myId: String = book.read("id")!!
+  val myId: String = book.read("id")!!
 
   private val group: Group = Group(myId)
 
-  private val displayName: String = book.read(
-    "display_name",
-    Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME)
-  )!!
+  private val displayName: String = book.read("display_name", "${Build.BRAND} ${Build.MODEL}")!!
 
   private val inetHelper = InetHelper(group)
 

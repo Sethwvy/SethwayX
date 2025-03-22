@@ -20,6 +20,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import `in`.sethway.App
+import `in`.sethway.App.Companion.BOOK
 import `in`.sethway.App.Companion.GROUP
 import `in`.sethway.R
 import `in`.sethway.databinding.DialogPickNameBinding
@@ -42,7 +43,11 @@ class WelcomeFragment : Fragment() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     if (GROUP.exists) {
-      if (GROUP.amCreator && !ManageNotificationPermissionFragment.canManageNotifications(requireContext())) {
+      val needsManageNotificationPermission =
+        GROUP.amCreator && !ManageNotificationPermissionFragment.canManageNotifications(
+          requireContext()
+        )
+      if (needsManageNotificationPermission) {
         findNavController().navigate(R.id.manageNotificationPermissionFragment)
       } else {
         findNavController().navigate(R.id.homeFragment)
@@ -70,13 +75,20 @@ class WelcomeFragment : Fragment() {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
       }
     }
-//    binding.editDeviceNameButton.apply {
-//      text = App.DEVICE_NAME
-//      setOnClickListener {
-//        showChangeDeviceNameDialog()
-//      }
-//    }
+    binding.editDeviceNameButton.apply {
+      val displayName = getDisplayName()
+      text = displayName
+      BOOK.write("display_name", displayName)
+      setOnClickListener {
+        showChangeDeviceNameDialog()
+      }
+    }
   }
+
+  private fun getDisplayName(): String =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+      Settings.Global.getString(requireContext().contentResolver, Settings.Global.DEVICE_NAME)
+    } else "${Build.BRAND} ${Build.MODEL}"
 
   private fun showChangeDeviceNameDialog() {
     (dialogBinding.root.parent as ViewGroup?)?.removeView(dialogBinding.root)
@@ -96,14 +108,14 @@ class WelcomeFragment : Fragment() {
         }
       })
     }
-//    dialogBinding.deviceNameEditText.setText(App.DEVICE_NAME)
-//    dialogBinding.continueButton.setOnClickListener {
-//      alertDialog?.cancel()
-//
-//      val newDeviceName = dialogBinding.deviceNameEditText.text.toString()
-//      App.setNewDeviceName(newDeviceName)
-//      binding.editDeviceNameButton.text = newDeviceName
-//    }
+    dialogBinding.deviceNameEditText.setText(getDisplayName())
+    dialogBinding.continueButton.setOnClickListener {
+      alertDialog?.cancel()
+
+      val newDisplayName = dialogBinding.deviceNameEditText.text.toString()
+      BOOK.write("display_name", newDisplayName)
+      binding.editDeviceNameButton.text = newDisplayName
+    }
 
     alertDialog = MaterialAlertDialogBuilder(requireContext())
       .setView(dialogBinding.root)

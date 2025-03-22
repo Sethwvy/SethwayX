@@ -13,8 +13,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+        </intent>
+    </queries>
+
     <application
-        android:usesCleartextTraffic="true"
         android:name=".App"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -24,20 +31,31 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Sethway"
+        android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
         <!-- Required: set your sentry.io project identifier (DSN) -->
-        <meta-data android:name="io.sentry.dsn" android:value="https://fa691a7cde041865a3cadaa37dd18132@o4508947774636032.ingest.de.sentry.io/4508947776077904" />
+        <meta-data
+            android:name="io.sentry.dsn"
+            android:value="https://fa691a7cde041865a3cadaa37dd18132@o4508947774636032.ingest.de.sentry.io/4508947776077904" />
 
         <!-- Add data like request headers, user ip adress and device name, see https://docs.sentry.io/platforms/android/data-management/data-collected/ for more info -->
-        <meta-data android:name="io.sentry.send-default-pii" android:value="true" />
+        <meta-data
+            android:name="io.sentry.send-default-pii"
+            android:value="true" />
 
         <!-- enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) -->
-        <meta-data android:name="io.sentry.traces.user-interaction.enable" android:value="true" />
+        <meta-data
+            android:name="io.sentry.traces.user-interaction.enable"
+            android:value="true" />
         <!-- enable screenshot for crashes -->
-        <meta-data android:name="io.sentry.attach-screenshot" android:value="true" />
+        <meta-data
+            android:name="io.sentry.attach-screenshot"
+            android:value="true" />
         <!-- enable view hierarchy for crashes -->
-        <meta-data android:name="io.sentry.attach-view-hierarchy" android:value="true" />
+        <meta-data
+            android:name="io.sentry.attach-view-hierarchy"
+            android:value="true" />
 
         <activity
             android:name=".MainActivity"

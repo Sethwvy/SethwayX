@@ -49,13 +49,10 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
   private var _binding: FragmentInvitePeerBinding? = null
   private val binding get() = _binding!!
 
-  private var isGroupCreator = false
   private var engineBinder: IIPCEngine? = null
 
   private var isNewGroup = false
   private var groupId = ""
-
-  private var amCreator = false
 
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
@@ -70,12 +67,10 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
     groupId = requireArguments().getString("group_id", "")
     isNewGroup = groupId.isNotEmpty()
-    amCreator = groupId.isNotEmpty()
 
     if (!isNewGroup) {
       val groupInfo = GROUP.getGroupInfo()
       groupId = groupInfo.getString("group_id")
-      amCreator = groupInfo.getBoolean("am_creator")
     }
 
     binding.groupName.text = groupId
@@ -155,15 +150,9 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
           "$displayName was added to the group", Toast.LENGTH_LONG
         ).show()
 
-        // We gotta look over here
-        if (isGroupCreator && !ManageNotificationPermissionFragment.canManageNotifications(
-            requireContext()
-          )
-        ) {
-          findNavController().navigate(R.id.manageNotificationPermissionFragment)
-        } else {
-          findNavController().navigate(R.id.homeFragment)
-        }
+        val args = Bundle()
+        args.putString("peer_info", jsonInfo.toString())
+        findNavController().navigate(R.id.filterFragment)
       }
     }
 

@@ -8,9 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.os.Process
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -74,7 +72,7 @@ class SyncEngineService : Service() {
     super.onCreate()
     Paper.init(this)
     notificationManager = getSystemService(NotificationManager::class.java)
-    engine = Engine(this, groupCallback = { groupCallback.get() }, entryConsumer = { entry ->
+    engine = Engine(groupCallback = { groupCallback.get() }, entryConsumer = { entry ->
       consumeNotificationEntry(entry)
     })
     registerReceiver()
@@ -109,7 +107,18 @@ class SyncEngineService : Service() {
     val notificationPackageName = notificationInfo.getString("package_name")
     val tag = notificationInfo.getString("tag")
     val id = notificationInfo.getInt("id")
+    val destinationPeerIds = notificationInfo.getJSONArray("peer_ids")
 
+    for (i in 0..<destinationPeerIds.length()) {
+      if (destinationPeerIds.getString(i) == engine.myId) {
+        postNotification(entry, tag, id)
+        break
+      }
+    }
+
+  }
+
+  private fun postNotification(entry: JSONObject, tag: String, id: Int) {
     val notificationContent = entry.getJSONObject("notification_content")
 
     val title = notificationContent.getString("title")

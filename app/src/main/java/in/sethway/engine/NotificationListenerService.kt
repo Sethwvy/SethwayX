@@ -4,13 +4,24 @@ import android.content.Intent
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import io.paperdb.Book
+import io.paperdb.Paper
 import kotlinx.coroutines.DelicateCoroutinesApi
+import org.json.JSONArray
 import org.json.JSONObject
 
 class NotificationListenerService : NotificationListenerService() {
 
   private companion object {
     const val TAG = "SethwayListener"
+  }
+
+  private lateinit var book: Book
+
+  override fun onCreate() {
+    super.onCreate()
+    Paper.init(this)
+    book = Paper.book("peer_app_list")
   }
 
   @OptIn(DelicateCoroutinesApi::class)
@@ -44,6 +55,7 @@ class NotificationListenerService : NotificationListenerService() {
       .put("package_name", sbn.packageName)
       .put("tag", sbn.tag ?: "_null_")
       .put("id", sbn.id)
+      .put("peer_ids", getAllowedPeerIdsFor(sbn.packageName))
 
     val notificationContent = JSONObject()
       .put("title", title)
@@ -53,6 +65,22 @@ class NotificationListenerService : NotificationListenerService() {
       .put("signature", signature)
       .put("notification_info", notificationInfo)
       .put("notification_content", notificationContent)
+  }
+
+  private fun getAllowedPeerIdsFor(packageName: String): JSONArray {
+    val peerIds = JSONArray()
+    for (peerId in book.allKeys) {
+      val allowedPackages = JSONArray(book.read<String>(peerId))
+
+      packageSearch@
+      for (i in 0..<allowedPackages.length()) {
+        if (allowedPackages.getString(i) == packageName) {
+          peerIds.put(peerId)
+          break@packageSearch
+        }
+      }
+    }
+    return peerIds
   }
 
 
