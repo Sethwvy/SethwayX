@@ -106,7 +106,7 @@ class FilterFragment : Fragment() {
   private fun writePeerAppList(checkedApps: MutableList<AppInfo>) {
     val packageNames = checkedApps.map { it.packageName }
     val book = Paper.book("peer_app_list")
-    book.write(peerId, JSONArray(packageNames))
+    book.write(peerId, JSONArray(packageNames).toString())
   }
 
   private fun getNotificationApps(): MutableList<AppInfo> {

@@ -18,7 +18,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -91,8 +90,6 @@ class Engine(
 
     datagram.subscribe("sync_commit_book") { address, port, bytes ->
       val json = JSONObject(String(bytes))
-      val packetId = json.getString("packet_id")
-
 
       val commonInfo = json.getJSONObject("common_info")
       val peerId = commonInfo.getString("id")
@@ -101,7 +98,6 @@ class Engine(
       peerLastKnownGoodAddress.write(peerId, address.hostAddress)
 
       val theirCommitBook = json.getJSONObject("commit_book")
-      println("Book: $theirCommitBook")
 
       val ourOutdatedCommitKeys = CommitBook.compareCommits(theirCommitBook)
       if (ourOutdatedCommitKeys.length() > 0) {
@@ -117,7 +113,6 @@ class Engine(
       val theirOutdatedCommitKeys = JSONObject(String(bytes))
       val updatedCommitsContent = CommitBook.getCommitContent(theirOutdatedCommitKeys)
       val replyPayload = JSONObject()
-        .put("packet_id", UUID.randomUUID())
         .put("content", updatedCommitsContent)
         .toString()
         .toByteArray()
@@ -136,7 +131,6 @@ class Engine(
 
     datagram.subscribe("provide_commits") { address, port, bytes ->
       val json = JSONObject(String(bytes))
-
       val commitContent = json.getJSONObject("content")
       CommitBook.updateCommits(commitContent).forEach { commit ->
         if (commit.bookName == "entries") {

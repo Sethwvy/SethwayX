@@ -152,7 +152,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
         val args = Bundle()
         args.putString("peer_info", jsonInfo.toString())
-        findNavController().navigate(R.id.filterFragment)
+        findNavController().navigate(R.id.filterFragment, args)
       }
     }
 
