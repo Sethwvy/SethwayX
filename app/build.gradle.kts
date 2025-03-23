@@ -12,8 +12,8 @@ android {
     applicationId = "in.sethway"
     minSdk = 24
     targetSdk = 35
-    versionCode = 1
-    versionName = "0.1 Beta"
+    versionCode = 2
+    versionName = "0.2 Beta"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -60,7 +60,7 @@ dependencies {
   implementation("me.relex:circleindicator:2.1.6")
   implementation("com.github.f4b6a3:uuid-creator:6.0.0")
 
-  implementation("com.github.XomaDev:Smart-UDP:00df31fc80")
+  implementation("com.github.Sethwvy:SmartDatagram:c30e2ae131")
 
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
   implementation("me.zhanghai.android.fastscroll:library:1.3.0")
