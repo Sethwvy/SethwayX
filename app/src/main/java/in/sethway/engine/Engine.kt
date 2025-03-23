@@ -8,16 +8,16 @@ import `in`.sethway.engine.commit.CommitBook
 import `in`.sethway.engine.commit.CommitHelper
 import `in`.sethway.engine.commit.CommitHelper.commit
 import `in`.sethway.engine.group.Group
-import `in`.sethway.engine.inet.InetHelper
-import `in`.sethway.engine.inet.InetQuery
 import `in`.sethway.smartdatagram.Destination
 import `in`.sethway.smartdatagram.SmartDatagram
 import inx.sethway.IGroupCallback
 import io.paperdb.Paper
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.NetworkInterface
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -31,9 +31,12 @@ class Engine(
 
     private const val ENGINE_PORT = 8899
 
+    private const val RENDEZVOUS_PORT = 2299
+
+    // Note: The order matters! First we must have Ipv4 address
     private val RENDEZVOUS_DESTINATIONS = listOf(
-      Destination(InetAddress.getByName("2a01:4f9:3081:399c::4"), 9966),
-      Destination(InetAddress.getByName("37.27.51.34"), 9966)
+      Destination(InetAddress.getByName("37.27.51.34"), RENDEZVOUS_PORT),
+      Destination(InetAddress.getByName("2a01:4f9:3081:399c::4"), RENDEZVOUS_PORT)
     )
 
     // Maximum time we can wait before asking rendezvous server to lookup peers
@@ -53,8 +56,6 @@ class Engine(
 
   private val displayName: String = book.read("display_name", "${Build.BRAND} ${Build.MODEL}")!!
 
-  private val inetHelper = InetHelper(group)
-
   private val executor = Executors.newSingleThreadScheduledExecutor()
   private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
 
@@ -64,17 +65,19 @@ class Engine(
     CommitBook.create()
     CommitHelper.initBooks()
 
-    group.addSelf(InetQuery.addresses().toString(), getMyCommonInfo().toString())
+    executor.submit {
+      group.addSelf(myReachableAddresses().toString(), getMyCommonInfo().toString())
+    }
 
     // checking for changes in our and theirs IPv6 interfaces
     scheduledExecutor.scheduleWithFixedDelay({
-      trySafe { inetHelper.checkForIpChanges() }
+      trySafe { performStun() }
       trySafe { ensurePeerIpValidity() }
-    }, 0, 2, TimeUnit.SECONDS)
+    }, 0, 6, TimeUnit.SECONDS)
 
     // Pings to rendezvous server
     scheduledExecutor.scheduleWithFixedDelay({
-      trySafe { announceToRendezvous(InetQuery.addresses()) }
+      trySafe { announceToRendezvous(myReachableAddresses()) }
       // Ensuring we have good updated IP of all the peers
     }, 0, 7, TimeUnit.SECONDS)
 
@@ -103,7 +106,7 @@ class Engine(
       if (ourOutdatedCommitKeys.length() > 0) {
         val keysPayload = ourOutdatedCommitKeys.toString().toByteArray()
         trySafe {
-          datagram.send(Destination(address, ENGINE_PORT), "request_provide_commits", keysPayload)
+          datagram.send(Destination(address, port), "request_provide_commits", keysPayload)
         }
       }
       null
@@ -119,11 +122,7 @@ class Engine(
 
       if (updatedCommitsContent.length() > 0) {
         trySafe {
-          datagram.send(
-            Destination(address, ENGINE_PORT),
-            "provide_commits",
-            replyPayload
-          )
+          datagram.send(Destination(address, port), "provide_commits", replyPayload)
         }
       }
       null
@@ -149,6 +148,19 @@ class Engine(
       val peerMap = JSONObject(String(bytes))
       executor.submit { trySafe { reconnectWithPeers(peerMap) } }
       null
+    }
+  }
+
+  private var myLastCommitAddressContent = ""
+
+  // We perform a stun request to RENDEZVOUS to discover our public IP
+  // and port beyond CGNAT mapping. This Public IP and port keeps changing.
+  private fun performStun() {
+    val newAddressArrayContent = myReachableAddresses().toString()
+    if (newAddressArrayContent != myLastCommitAddressContent) {
+      // We gotta commit hier
+      group.updateSelfInfo(newAddressArrayContent)
+      myLastCommitAddressContent = newAddressArrayContent
     }
   }
 
@@ -193,12 +205,11 @@ class Engine(
       val addrLen = peerAddresses.length()
       for (i in 0..<addrLen) {
         trySafe {
-          val address = InetAddress.getByName(peerAddresses.getString(i))
-          destinations += Destination(address, ENGINE_PORT)
+          destinations += peerAddresses.getString(i).toDest()
         }
       }
     }
-    trySafe { datagram.send(destinations, "sync_commit_book", commitBookPayload) }
+    datagram.send(destinations, "sync_commit_book", commitBookPayload) {}
   }
 
   // The invitee scans the QR Code and contacts us for confirmation
@@ -221,7 +232,7 @@ class Engine(
             .put("inviter_commits", group.selfCommits())
             .toString()
             .toByteArray()
-          datagram.send(Destination(address, ENGINE_PORT), "receive_success", replyPayload)
+          datagram.send(Destination(address, port), "receive_success", replyPayload)
         }
       }
 
@@ -235,6 +246,7 @@ class Engine(
 
   // We (the invitee) have scanned the QR Code, awaiting for confirmation
   fun acceptGroupInvite(addresses: JSONArray) {
+    println("accepting group invite!")
     datagram.subscribe("receive_success") { address, port, bytes ->
       datagram.unsubscribe("receive_success")
 
@@ -253,17 +265,21 @@ class Engine(
       null
     }
     executor.submit {
+      println("preparing payload")
       val payload = JSONObject()
         .put("invitee_commits", group.selfCommits())
         .put("invitee_common_info", getMyCommonInfo())
         .toString()
         .toByteArray()
+      println("prepared payload ${String(payload)}")
+      println("got address list $addresses")
       val addrLen = addresses.length()
       val destinations = mutableListOf<Destination>()
       for (i in 0..<addrLen) {
         trySafe {
-          val address = InetAddress.getByName(addresses.getString(i))
-          destinations += Destination(address, ENGINE_PORT)
+          val destination = addresses.getString(i).toDest()
+          destinations += destination
+          println("parsed ${destination.address} ${destination.port}")
         }
       }
       datagram.send(destinations, "receive_invitee", payload)
@@ -274,7 +290,7 @@ class Engine(
     group.createGroup(groupId, myId)
   }
 
-  fun getGroupInvitation(): JSONArray = InetQuery.addresses()
+  fun getGroupInvitation(): JSONArray = myReachableAddresses()
 
   fun commitNewEntry(entry: JSONObject) {
     // That's it! This commit should auto propagate with sync packets!
@@ -292,15 +308,15 @@ class Engine(
       .put("content", content)
       .toString()
       .toByteArray()
-    forEachPeerAddress { address ->
-      datagram.send(Destination(address, ENGINE_PORT), "provide_commits", payload)
+    forEachPeerAddress { destination ->
+      datagram.send(destination, "provide_commits", payload)
     }
   }
 
   private fun broadcastCommitBook(commitBook: JSONObject) {
     val syncPacket = getCommitBookPayload(commitBook)
-    forEachPeerAddress { address ->
-      datagram.send(Destination(address, ENGINE_PORT), "sync_commit_book", syncPacket)
+    forEachPeerAddress { destination ->
+      datagram.send(destination, "sync_commit_book", syncPacket)
     }
   }
 
@@ -310,7 +326,7 @@ class Engine(
     .toString()
     .toByteArray()
 
-  private fun forEachPeerAddress(consumer: (InetAddress) -> Unit) {
+  private fun forEachPeerAddress(consumer: (Destination) -> Unit) {
     val peerInfo = group.getEachPeerInfo()
     for (peerId in peerInfo.keys()) {
       if (peerId == myId) continue
@@ -318,7 +334,7 @@ class Engine(
       val addrLen = addresses.length()
       for (i in 0..<addrLen) {
         val address = addresses.getString(i)
-        trySafe { consumer(InetAddress.getByName(address)) }
+        trySafe { consumer(address.toDest()) }
       }
     }
   }
@@ -336,6 +352,39 @@ class Engine(
         e.printStackTrace()
       }
     }
+  }
+
+  private fun String.toDest(): Destination = split(" ").let {
+    Destination(
+      InetAddress.getByName(it[0].replace("[", "").replace("]", "")),
+      it[1].toInt()
+    )
+  }
+
+  private fun myReachableAddresses(): JSONArray {
+    val addresses = JSONArray()
+    NetworkInterface.getNetworkInterfaces().iterator().forEach { i ->
+      i.inetAddresses.iterator().forEach { a ->
+        if (!a.isLinkLocalAddress
+          && !a.isLoopbackAddress
+          && !a.isSiteLocalAddress
+          && !a.isAnyLocalAddress && a is Inet6Address
+        ) {
+          a.hostAddress.let { addresses.put("[$it] $ENGINE_PORT") }
+        }
+      }
+    }
+    // We perform a stun request to RENDEZVOUS server to discover our
+    // public IPv4 and port beyond CGNAT mapping
+    datagram.send(RENDEZVOUS_DESTINATIONS, "stun", "Hi!".toByteArray()) {}
+    datagram.expectPacket("stun_response", 2000)?.let { stunReply ->
+      val stunInfo = JSONObject(String(stunReply.data))
+      val myPublicAddress = stunInfo.getString("address")
+      val myPublicPort = stunInfo.getInt("port")
+
+      addresses.put("$myPublicAddress:$myPublicPort")
+    }
+    return addresses
   }
 
   fun close() {

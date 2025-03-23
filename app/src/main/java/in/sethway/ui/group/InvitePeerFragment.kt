@@ -39,6 +39,8 @@ import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
 import kotlinx.coroutines.Runnable
 import org.json.JSONObject
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class InvitePeerFragment : Fragment(), ServiceConnection {
 
@@ -53,6 +55,8 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
   private var isNewGroup = false
   private var groupId = ""
+
+  private val executor = Executors.newSingleThreadScheduledExecutor()
 
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
@@ -80,24 +84,29 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
       ShareUtils.share(requireContext(), bitmap, "Group ID: $groupId")
     }
 
-    val handler = Handler(Looper.getMainLooper())
-    val qrCodeUpdater = object : Runnable {
-      override fun run() {
-        try {
-          updateQRCode()
-          handler.postDelayed(this, 2000)
-        } catch (_: Throwable) {
+    executor.scheduleWithFixedDelay({
+      askInviteInfo()
+    }, 0, 2, TimeUnit.SECONDS)
+  }
 
+  private fun askInviteInfo() {
+    try {
+      engineBinder?.invite.let {
+        Handler(Looper.getMainLooper()).post {
+          try {
+            updateQRCode(it)
+          } catch (_: Throwable) {
+          }
         }
       }
+    } catch (e: Throwable) {
+      println("Update QR Error: ${e::class.simpleName} ${e.message}")
     }
-    qrCodeUpdater.run()
   }
 
   private var lastDrawnQrText = ""
 
-  private fun updateQRCode() {
-    val inviteInfo = engineBinder?.getInvite()
+  private fun updateQRCode(inviteInfo: String?) {
     binding.apply {
       if (inviteInfo == null) {
         qrImageView.visibility = View.GONE
@@ -134,8 +143,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
         createGroup(groupId)
       }
     }
-
-    Handler(Looper.getMainLooper()).post { updateQRCode() }
+    executor.submit { askInviteInfo() }
   }
 
   private val groupCallback = object : IGroupCallback.Stub() {
