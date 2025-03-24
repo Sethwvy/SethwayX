@@ -31,7 +31,7 @@ class Engine(
 
     private const val ENGINE_PORT = 8899
 
-    private const val RENDEZVOUS_PORT = 42223
+    private const val RENDEZVOUS_PORT = 5566
 
     // Note: The order matters! First we must have Ipv4 address
     private val RENDEZVOUS_DESTINATIONS
@@ -434,6 +434,7 @@ class Engine(
       datagram.expectPacket("stun_response", 5000)?.let { stunReply ->
         val stunInfo = JSONObject(String(stunReply.data))
         addPublicAddr(stunInfo)
+        println("Stun response received successfully")
         lastStunTime = System.currentTimeMillis()
         stunCache = stunInfo
       }
