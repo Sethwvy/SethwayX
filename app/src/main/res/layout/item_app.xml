@@ -26,7 +26,7 @@
             android:text="Signal"
             android:textAlignment="viewStart"
             android:textColor="?attr/colorPrimary"
-            android:textSize="18sp"/>
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/packageName"
@@ -38,8 +38,9 @@
             android:textColor="?attr/colorSecondary" />
     </LinearLayout>
 
-    <CheckBox
-        android:id="@+id/checkApp"
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/enableSwitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 

@@ -292,7 +292,6 @@ class Engine(
       // a hole is punched in the CGNAT interface of theirs. Or the packet will get dropped!
       for (i in 0..<addrLen) {
         addresses.getString(i).let {
-          println("one of the address: $it")
           if (!it.contains(":")) {
             // Thees's a Ipv4 address! We gotta punch a hole first!
             val destination = it.toDest()

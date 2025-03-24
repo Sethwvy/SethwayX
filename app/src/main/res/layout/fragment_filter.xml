@@ -29,55 +29,37 @@
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
-        style="@style/Widget.Material3.CardView.Elevated"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
-        app:cardCornerRadius="25dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:contentPadding="8dp"
-        app:strokeWidth="1dp">
+        app:strokeWidth="0dp">
 
-        <LinearLayout
+        <GridView
+            android:id="@+id/miniApps"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:columnWidth="48dp"
+            android:gravity="center"
+            android:numColumns="auto_fit"
+            android:stretchMode="columnWidth"
+            tools:listitem="@layout/item_mini_app" />
 
-            <TextView
-                android:id="@+id/pickedApps"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_margin="8dp"
-                android:text="No apps picked"
-                android:textColor="?colorSecondary"
-                android:textSize="16sp" />
-
-            <com.google.android.material.button.MaterialButton
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical|end"
-                android:layout_marginTop="8dp"
-                android:id="@+id/continueButton"
-                android:text="Continue"
-                app:icon="@drawable/chevron_right_sym"
-                app:iconGravity="end"
-                app:iconSize="12dp" />
-        </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.card.MaterialCardView
         style="@style/Widget.Material3.CardView.Elevated"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
         android:layout_marginStart="8dp"
-        app:cardCornerRadius="25dp"
-
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:strokeWidth="1dp">
 
@@ -88,5 +70,14 @@
             tools:listitem="@layout/item_app" />
     </com.google.android.material.card.MaterialCardView>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/continueButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|end"
+        android:layout_margin="16dp"
+        android:text="Continue"
+        app:iconGravity="end"
+        app:iconSize="12dp" />
 
 </LinearLayout>

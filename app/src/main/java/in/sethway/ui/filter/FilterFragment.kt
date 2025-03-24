@@ -19,6 +19,7 @@ import `in`.sethway.R
 import `in`.sethway.databinding.FragmentFilterBinding
 import `in`.sethway.ui.adapters.AppAdapter
 import `in`.sethway.ui.adapters.AppInfo
+import `in`.sethway.ui.adapters.MiniAppAdapter
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 import io.paperdb.Paper
 import me.zhanghai.android.fastscroll.FastScrollerBuilder
@@ -65,17 +66,14 @@ class FilterFragment : Fragment() {
     val appsList = getNotificationApps()
 
     val checkedApps = mutableListOf<AppInfo>()
+    binding.miniApps.adapter = MiniAppAdapter(requireContext(), checkedApps)
     val appAdapter = AppAdapter(appsList) { appInfo, checked ->
       if (checked) {
         checkedApps += appInfo
       } else {
         checkedApps -= appInfo
       }
-      if (checkedApps.isEmpty()) {
-        binding.pickedApps.text = "No apps picked"
-      } else {
-        binding.pickedApps.text = checkedApps.joinToString(", ") { it.appName }
-      }
+      binding.miniApps.adapter = MiniAppAdapter(requireContext(), checkedApps)
     }
 
     val layoutManager = LinearLayoutManager(requireContext())
@@ -88,7 +86,7 @@ class FilterFragment : Fragment() {
           layoutManager.orientation
         )
       )
-      FastScrollerBuilder(this).useMd2Style().build()
+      //FastScrollerBuilder(this).useMd2Style().build()
     }
 
     binding.continueButton.setOnClickListener {
