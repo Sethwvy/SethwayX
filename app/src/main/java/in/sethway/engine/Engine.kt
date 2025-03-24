@@ -31,13 +31,14 @@ class Engine(
 
     private const val ENGINE_PORT = 8899
 
-    private const val RENDEZVOUS_PORT = 2299
+    private const val RENDEZVOUS_PORT = 42223
 
     // Note: The order matters! First we must have Ipv4 address
-    private val RENDEZVOUS_DESTINATIONS = listOf(
-      Destination(InetAddress.getByName("37.27.51.34"), RENDEZVOUS_PORT),
-      Destination(InetAddress.getByName("2a01:4f9:3081:399c::4"), RENDEZVOUS_PORT)
-    )
+    private val RENDEZVOUS_DESTINATIONS
+      get() = listOf(
+        Destination(InetAddress.getByName("172.232.118.18"), RENDEZVOUS_PORT),
+        Destination(InetAddress.getByName("2600:3c08::f03c:95ff:fe41:d380"), RENDEZVOUS_PORT)
+      )
 
     // Maximum time we can wait before asking rendezvous server to lookup peers
     private const val MAX_TIME_PEER_OUTAGE = 30 * 1000
@@ -59,7 +60,7 @@ class Engine(
   private val executor = Executors.newSingleThreadScheduledExecutor()
   private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
 
-  private val datagram = SmartDatagram(InetSocketAddress("::", ENGINE_PORT))
+  private val datagram = SmartDatagram(InetSocketAddress("0.0.0.0", ENGINE_PORT))
 
   init {
     CommitBook.create()
@@ -148,6 +149,27 @@ class Engine(
       val peerMap = JSONObject(String(bytes))
       executor.submit { trySafe { reconnectWithPeers(peerMap) } }
       null
+    }
+
+    // Someone wants to reach us through Ipv4! But for that we'll need
+    // to punch a hole in CGNAT
+    datagram.subscribe("punch_hole") { address, port, bytes ->
+      val json = JSONObject(String(bytes))
+      val address = json.getString("address")
+      val port = json.getInt("port")
+
+      println("Attempting punch hole $json")
+      // Attempting to connect to that peer, will create a hole
+      // on our side. Thus allowing them to reach us.
+      executor.submit {
+        trySafe {
+          datagram.send(
+            Destination(InetAddress.getByName(address), port),
+            "uwu",
+            "uwu".toByteArray()
+          )
+        }
+      }
     }
   }
 
@@ -246,7 +268,7 @@ class Engine(
 
   // We (the invitee) have scanned the QR Code, awaiting for confirmation
   fun acceptGroupInvite(addresses: JSONArray) {
-    println("accepting group invite!")
+    println("scanned the qr code $addresses")
     datagram.subscribe("receive_success") { address, port, bytes ->
       datagram.unsubscribe("receive_success")
 
@@ -265,21 +287,37 @@ class Engine(
       null
     }
     executor.submit {
-      println("preparing payload")
+      val addrLen = addresses.length()
+      // Look for any Ipv4 addresses. Before we reach them, we need to ensure
+      // a hole is punched in the CGNAT interface of theirs. Or the packet will get dropped!
+      for (i in 0..<addrLen) {
+        addresses.getString(i).let {
+          println("one of the address: $it")
+          if (!it.contains(":")) {
+            // Thees's a Ipv4 address! We gotta punch a hole first!
+            val destination = it.toDest()
+            val punchHoleRequest = JSONObject()
+              .put("address", destination.address)
+              .put("port", destination.port)
+              .toString()
+              .toByteArray()
+            // We'll ask the server.
+            // The server will ask the other device to make a hole.
+            println("Asking for hole to be punched! ${destination.address} ${destination.port}")
+            datagram.send(RENDEZVOUS_DESTINATIONS, "punch_hole", punchHoleRequest) { }
+          }
+        }
+      }
+
       val payload = JSONObject()
         .put("invitee_commits", group.selfCommits())
         .put("invitee_common_info", getMyCommonInfo())
         .toString()
         .toByteArray()
-      println("prepared payload ${String(payload)}")
-      println("got address list $addresses")
-      val addrLen = addresses.length()
       val destinations = mutableListOf<Destination>()
       for (i in 0..<addrLen) {
         trySafe {
-          val destination = addresses.getString(i).toDest()
-          destinations += destination
-          println("parsed ${destination.address} ${destination.port}")
+          destinations += addresses.getString(i).toDest()
         }
       }
       datagram.send(destinations, "receive_invitee", payload)
@@ -361,6 +399,9 @@ class Engine(
     )
   }
 
+  private var lastStunTime = 0L
+  private var stunCache: JSONObject? = null
+
   private fun myReachableAddresses(): JSONArray {
     val addresses = JSONArray()
     NetworkInterface.getNetworkInterfaces().iterator().forEach { i ->
@@ -374,15 +415,29 @@ class Engine(
         }
       }
     }
-    // We perform a stun request to RENDEZVOUS server to discover our
-    // public IPv4 and port beyond CGNAT mapping
-    datagram.send(RENDEZVOUS_DESTINATIONS, "stun", "Hi!".toByteArray()) {}
-    datagram.expectPacket("stun_response", 2000)?.let { stunReply ->
-      val stunInfo = JSONObject(String(stunReply.data))
+    fun addPublicAddr(stunInfo: JSONObject) {
       val myPublicAddress = stunInfo.getString("address")
       val myPublicPort = stunInfo.getInt("port")
-
-      addresses.put("$myPublicAddress:$myPublicPort")
+      addresses.put("$myPublicAddress $myPublicPort")
+    }
+    if (stunCache == null || System.currentTimeMillis() - lastStunTime >= 3 * 1000) {
+      // We perform a stun request to RENDEZVOUS server to discover our
+      // public IPv4 and port beyond CGNAT mapping
+      datagram.send(
+        RENDEZVOUS_DESTINATIONS[0],
+        "stun",
+        "${System.currentTimeMillis()}".toByteArray()
+      ) {
+        it.printStackTrace()
+      }
+      datagram.expectPacket("stun_response", 5000)?.let { stunReply ->
+        val stunInfo = JSONObject(String(stunReply.data))
+        addPublicAddr(stunInfo)
+        lastStunTime = System.currentTimeMillis()
+        stunCache = stunInfo
+      }
+    } else {
+      addPublicAddr(stunCache!!)
     }
     return addresses
   }

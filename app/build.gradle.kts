@@ -60,7 +60,7 @@ dependencies {
   implementation("me.relex:circleindicator:2.1.6")
   implementation("com.github.f4b6a3:uuid-creator:6.0.0")
 
-  implementation("com.github.Sethwvy:SmartDatagram:e8c9dea911")
+  implementation("com.github.Sethwvy:SmartDatagram:3281d54024")
 
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
   implementation("me.zhanghai.android.fastscroll:library:1.3.0")

@@ -86,7 +86,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
 
     executor.scheduleWithFixedDelay({
       askInviteInfo()
-    }, 0, 2, TimeUnit.SECONDS)
+    }, 0, 7, TimeUnit.SECONDS)
   }
 
   private fun askInviteInfo() {
