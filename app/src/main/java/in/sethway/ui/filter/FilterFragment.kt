@@ -1,6 +1,7 @@
 package `in`.sethway.ui.filter
 
 import android.Manifest
+import android.appwidget.AppWidgetHost
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -18,13 +19,15 @@ import `in`.sethway.App.Companion.GROUP
 import `in`.sethway.R
 import `in`.sethway.databinding.FragmentFilterBinding
 import `in`.sethway.ui.adapters.AppAdapter
-import `in`.sethway.ui.adapters.AppInfo
+import `in`.sethway.ui.adapters.AppAdapterElement
+import `in`.sethway.ui.adapters.AppElement
+import `in`.sethway.ui.adapters.HeaderElement
 import `in`.sethway.ui.adapters.MiniAppAdapter
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 import io.paperdb.Paper
-import me.zhanghai.android.fastscroll.FastScrollerBuilder
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.math.min
 
 
 class FilterFragment : Fragment() {
@@ -63,11 +66,11 @@ class FilterFragment : Fragment() {
 
     binding.descriptionFilter.text = getString(R.string.description_filter, peerName)
 
-    val appsList = getNotificationApps()
+    val elements = getSortedApps()
 
-    val checkedApps = mutableListOf<AppInfo>()
+    val checkedApps = mutableListOf<AppElement>()
     binding.miniApps.adapter = MiniAppAdapter(requireContext(), checkedApps)
-    val appAdapter = AppAdapter(appsList) { appInfo, checked ->
+    val appAdapter = AppAdapter(elements) { appInfo, checked ->
       if (checked) {
         checkedApps += appInfo
       } else {
@@ -80,12 +83,7 @@ class FilterFragment : Fragment() {
     binding.apps.apply {
       this.layoutManager = layoutManager
       adapter = appAdapter
-      addItemDecoration(
-        DividerItemDecoration(
-          requireContext(),
-          layoutManager.orientation
-        )
-      )
+
       //FastScrollerBuilder(this).useMd2Style().build()
     }
 
@@ -105,14 +103,15 @@ class FilterFragment : Fragment() {
     }
   }
 
-  private fun writePeerAppList(checkedApps: MutableList<AppInfo>) {
+  private fun writePeerAppList(checkedApps: MutableList<AppElement>) {
     val packageNames = checkedApps.map { it.packageName }
     val book = Paper.book("peer_app_list")
     book.write(peerId, JSONArray(packageNames).toString())
   }
 
-  private fun getNotificationApps(): MutableList<AppInfo> {
-    val apps = mutableListOf<AppInfo>()
+  // TODO: in future we have to add an option to show all aps
+  private fun getSortedApps(): MutableList<AppAdapterElement> {
+    val apps = mutableListOf<AppElement>()
 
     val packageManager = requireContext().packageManager
     val mainIntent =
@@ -130,11 +129,23 @@ class FilterFragment : Fragment() {
       val packageName = resolveInfo.activityInfo.packageName
 
       if (canPostNotifications(packageName)) {
-        apps.add(AppInfo(appName, appIcon, packageName))
+        apps.add(AppElement(appName, appIcon, packageName))
       }
     }
     apps.sortBy { it.appName }
-    return apps
+    val groupedApps = mutableListOf<AppAdapterElement>()
+    var lastHeader = '\u0000'
+
+    for (app in apps) {
+      val newHeader = app.appName[0].uppercaseChar()
+      if (lastHeader != newHeader) {
+        groupedApps += HeaderElement(newHeader.toString())
+        lastHeader = newHeader
+      }
+      groupedApps += app
+    }
+
+    return groupedApps
   }
 
   private fun canPostNotifications(packageName: String): Boolean {

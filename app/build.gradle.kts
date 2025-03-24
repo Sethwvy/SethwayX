@@ -63,7 +63,6 @@ dependencies {
   implementation("com.github.Sethwvy:SmartDatagram:3281d54024")
 
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
-  implementation("me.zhanghai.android.fastscroll:library:1.3.0")
   implementation(libs.play.services.mlkit.barcode.scanning)
 
   testImplementation(libs.junit)
