@@ -18,36 +18,52 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/deviceName"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="start|center_vertical"
-                android:text="Nothing Phone 2a"
-                android:textAlignment="viewStart"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/deviceName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|center_vertical"
+                    android:drawablePadding="12dp"
+                    android:text="Nothing Phone 2a"
+                    android:textAlignment="viewStart"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/starIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="12dp"
+                    android:textAlignment="viewStart"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:drawableStartCompat="@drawable/star_fill" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/deviceSubtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="start|center_vertical"
-                android:text="15 June 22"
+                android:text="HelloWorld"
                 android:textAlignment="viewStart"
-                android:textColor="?attr/colorSecondary" />
+                android:textColor="?attr/colorSecondary"
+                android:textSize="12sp" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/broadcasterLabel"
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/settingsButton"
+            style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginEnd="16dp"
-            android:drawablePadding="8dp"
-            android:text="Broadcaster"
-            android:visibility="gone"
-            app:drawableStartCompat="@drawable/star_fill" />
+            app:icon="@drawable/settings" />
     </LinearLayout>
 
 </LinearLayout>

@@ -23,6 +23,11 @@ class Group(private val myId: String) {
       groupBook.read("am_creator", false)!!
     }
 
+  val groupId: String
+    get() = synchronized(lock) {
+      groupBook.read("group_id")!!
+    }
+
   fun createGroup(groupId: String, creator: String) {
     synchronized(lock) {
       groupBook.write("group_id", groupId)
@@ -45,7 +50,7 @@ class Group(private val myId: String) {
 
   fun addSelf(peerInfo: String, commonInfo: String) {
     synchronized(lock) {
-      if (!peerInfoBook.contains(myId)) {
+      if (!peerCommonInfoBook.contains(myId)) {
         peerInfoBook.commit(myId, peerInfo)
         peerCommonInfoBook.commit(myId, commonInfo)
       }
@@ -66,6 +71,16 @@ class Group(private val myId: String) {
       val peerInfo = JSONObject()
       for (peerId in peerInfoBook.allKeys) {
         peerInfo.put(peerId, peerInfoBook.read<String>(peerId)!!)
+      }
+      return peerInfo
+    }
+  }
+
+  fun getEachPeerCommonInfo(): JSONObject {
+    synchronized(lock) {
+      val peerInfo = JSONObject()
+      for (peerId in peerCommonInfoBook.allKeys) {
+        peerInfo.put(peerId, peerCommonInfoBook.read<String>(peerId)!!)
       }
       return peerInfo
     }

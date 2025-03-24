@@ -66,6 +66,7 @@ class Engine(
     CommitHelper.initBooks()
 
     executor.submit {
+      println("adding common info")
       group.addSelf(myReachableAddresses().toString(), getMyCommonInfo().toString())
     }
 
@@ -325,6 +326,7 @@ class Engine(
 
   fun createNewGroup(groupId: String) {
     group.createGroup(groupId, myId)
+    group.updateSelfCommonInfo(getMyCommonInfo().toString())
   }
 
   fun getGroupInvitation(): JSONArray = myReachableAddresses()
@@ -379,6 +381,7 @@ class Engine(
   private fun getMyCommonInfo(): JSONObject = JSONObject()
     .put("id", myId)
     .put("display_name", displayName)
+    .put("broadcaster", group.exists && group.amCreator)
 
   private fun trySafe(printStackTrace: Boolean = false, block: () -> Unit) {
     try {

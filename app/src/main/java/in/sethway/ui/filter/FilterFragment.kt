@@ -71,7 +71,11 @@ class FilterFragment : Fragment() {
       } else {
         checkedApps -= appInfo
       }
-      binding.pickedApps.text = checkedApps.joinToString(", ") { it.appName }
+      if (checkedApps.isEmpty()) {
+        binding.pickedApps.text = "No apps picked"
+      } else {
+        binding.pickedApps.text = checkedApps.joinToString(", ") { it.appName }
+      }
     }
 
     val layoutManager = LinearLayoutManager(requireContext())
