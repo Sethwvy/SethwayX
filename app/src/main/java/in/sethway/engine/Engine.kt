@@ -37,7 +37,6 @@ class Engine(
     private val RENDEZVOUS_DESTINATIONS
       get() = listOf(
         Destination(InetAddress.getByName("172.232.118.18"), RENDEZVOUS_PORT),
-        Destination(InetAddress.getByName("2600:3c08::f03c:95ff:fe41:d380"), RENDEZVOUS_PORT)
       )
 
     // Maximum time we can wait before asking rendezvous server to lookup peers
