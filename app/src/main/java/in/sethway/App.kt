@@ -3,7 +3,7 @@ package `in`.sethway
 import android.app.Application
 import com.github.f4b6a3.uuid.UuidCreator
 import com.google.android.material.color.DynamicColors
-import `in`.sethway.engine.group.Group
+import `in`.sethway.engine.Group
 import io.paperdb.Book
 import io.paperdb.Paper
 

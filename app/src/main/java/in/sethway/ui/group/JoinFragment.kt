@@ -24,18 +24,18 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import `in`.sethway.R
-import `in`.sethway.databinding.FragmentJoinGroupBinding
+import `in`.sethway.databinding.FragmentJoinBinding
 import `in`.sethway.engine.SyncEngineService
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
 
-class JoinGroupFragment : Fragment(), ServiceConnection {
+class JoinFragment : Fragment(), ServiceConnection {
 
   companion object {
     private const val TAG = "JoinGroupFragment"
   }
 
-  private var _binding: FragmentJoinGroupBinding? = null
+  private var _binding: FragmentJoinBinding? = null
   private val binding get() = _binding!!
 
   private var provider: ProcessCameraProvider? = null
@@ -55,7 +55,7 @@ class JoinGroupFragment : Fragment(), ServiceConnection {
     inflater: LayoutInflater, container: ViewGroup?,
     savedInstanceState: Bundle?
   ): View {
-    _binding = FragmentJoinGroupBinding.inflate(inflater)
+    _binding = FragmentJoinBinding.inflate(inflater)
     return binding.root
   }
 

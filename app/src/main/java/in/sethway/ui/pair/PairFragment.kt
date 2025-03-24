@@ -38,7 +38,7 @@ class PairFragment : Fragment() {
       createGroupDialog()
     }
     binding.joinGroup.setOnClickListener {
-      findNavController().navigate(R.id.joinGroupFragment)
+      findNavController().navigate(R.id.joinFragment)
     }
 
     val text = "What to do?"
@@ -64,7 +64,7 @@ class PairFragment : Fragment() {
         alertDialog?.cancel()
         val args = Bundle()
         args.putString("group_id", groupNameEditText.text.toString())
-        findNavController().navigate(R.id.invitePeerFragment, args)
+        findNavController().navigate(R.id.inviteFragment, args)
       }
 
       alertDialog = MaterialAlertDialogBuilder(requireContext())

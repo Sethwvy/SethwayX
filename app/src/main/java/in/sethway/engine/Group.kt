@@ -1,7 +1,6 @@
-package `in`.sethway.engine.group
+package `in`.sethway.engine
 
 import `in`.sethway.engine.commit.CommitBook
-import `in`.sethway.engine.commit.CommitBook.getCommitContent
 import `in`.sethway.engine.commit.CommitHelper.commit
 import io.paperdb.Paper
 import org.json.JSONArray
@@ -62,7 +61,7 @@ class Group(private val myId: String) {
       val filteredCommitBook = JSONObject()
         .put("peer_info", JSONArray().put(myId))
         .put("peer_common_info", JSONArray().put(myId))
-      return getCommitContent(filteredCommitBook)
+      return CommitBook.getCommitContent(filteredCommitBook)
     }
   }
 

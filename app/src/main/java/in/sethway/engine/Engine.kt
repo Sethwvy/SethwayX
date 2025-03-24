@@ -7,7 +7,7 @@ import android.util.Log
 import `in`.sethway.engine.commit.CommitBook
 import `in`.sethway.engine.commit.CommitHelper
 import `in`.sethway.engine.commit.CommitHelper.commit
-import `in`.sethway.engine.group.Group
+import `in`.sethway.engine.Group
 import `in`.sethway.smartdatagram.Destination
 import `in`.sethway.smartdatagram.SmartDatagram
 import inx.sethway.IGroupCallback

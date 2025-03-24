@@ -13,8 +13,6 @@ import `in`.sethway.R
 import `in`.sethway.databinding.FragmentManageGroupBinding
 import `in`.sethway.ui.Animation.withCardAnimation
 import `in`.sethway.ui.adapters.DevicesAdapter
-import org.json.JSONArray
-import org.json.JSONObject
 
 
 class ManageGroupFragment : Fragment() {
@@ -54,7 +52,7 @@ class ManageGroupFragment : Fragment() {
     }
 
     withCardAnimation(binding.addDeviceCard) {
-      findNavController().navigate(R.id.invitePeerFragment)
+      findNavController().navigate(R.id.inviteFragment)
     }
   }
 

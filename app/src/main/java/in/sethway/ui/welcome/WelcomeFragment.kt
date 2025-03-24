@@ -26,7 +26,7 @@ import `in`.sethway.R
 import `in`.sethway.databinding.DialogPickNameBinding
 import `in`.sethway.databinding.FragmentWelcomeBinding
 import `in`.sethway.engine.SyncEngineService
-import `in`.sethway.engine.group.Group
+import `in`.sethway.engine.Group
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 import io.paperdb.Paper
 

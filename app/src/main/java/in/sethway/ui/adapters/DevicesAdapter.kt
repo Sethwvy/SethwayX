@@ -15,7 +15,6 @@ class DevicesAdapter(
 ) :
   RecyclerView.Adapter<DevicesAdapter.ElementHolder>() {
 
-
   private val peerIds = peers.keys().asSequence().toList()
 
   class ElementHolder(view: View) : RecyclerView.ViewHolder(view) {

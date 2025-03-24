@@ -31,24 +31,21 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelSha
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
 import `in`.sethway.App.Companion.GROUP
 import `in`.sethway.R
-import `in`.sethway.databinding.FragmentInvitePeerBinding
+import `in`.sethway.databinding.FragmentInviteBinding
 import `in`.sethway.engine.SyncEngineService
-import `in`.sethway.engine.group.Group
-import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
-import kotlinx.coroutines.Runnable
 import org.json.JSONObject
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class InvitePeerFragment : Fragment(), ServiceConnection {
+class InviteFragment : Fragment(), ServiceConnection {
 
   companion object {
     private const val TAG = "MyGroupFragment"
   }
 
-  private var _binding: FragmentInvitePeerBinding? = null
+  private var _binding: FragmentInviteBinding? = null
   private val binding get() = _binding!!
 
   private var engineBinder: IIPCEngine? = null
@@ -62,7 +59,7 @@ class InvitePeerFragment : Fragment(), ServiceConnection {
     inflater: LayoutInflater, container: ViewGroup?,
     savedInstanceState: Bundle?
   ): View {
-    _binding = FragmentInvitePeerBinding.inflate(inflater)
+    _binding = FragmentInviteBinding.inflate(inflater)
     return binding.root
   }
 
