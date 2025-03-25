@@ -31,7 +31,7 @@ class Engine(
 
     private const val ENGINE_PORT = 8899
 
-    private const val RENDEZVOUS_PORT = 5566
+    private const val RENDEZVOUS_PORT = 7544
 
     // Note: The order matters! First we must have Ipv4 address
     private val RENDEZVOUS_DESTINATIONS
@@ -66,13 +66,11 @@ class Engine(
     CommitHelper.initBooks()
 
     executor.submit {
-      println("adding common info")
       group.addSelf(myReachableAddresses().toString(), getMyCommonInfo().toString())
     }
 
     // checking for changes in our and theirs IPv6 interfaces
     scheduledExecutor.scheduleWithFixedDelay({
-      trySafe { performStun() }
       trySafe { ensurePeerIpValidity() }
     }, 0, 6, TimeUnit.SECONDS)
 
@@ -92,14 +90,16 @@ class Engine(
       trySafe { broadcastCommitBook(CommitBook.getCommitBook("entries")) }
     }, 0, 10, TimeUnit.SECONDS)
 
-    datagram.subscribe("sync_commit_book") { address, port, bytes ->
+    datagram.subscribe("sync_commit_book") { address, port, bytes, consumed ->
       val json = JSONObject(String(bytes))
 
-      val commonInfo = json.getJSONObject("common_info")
-      val peerId = commonInfo.getString("id")
+      if (!consumed) {
+        val commonInfo = json.getJSONObject("common_info")
+        val peerId = commonInfo.getString("id")
 
-      peerLogs.write(peerId, System.currentTimeMillis())
-      peerLastKnownGoodAddress.write(peerId, address.hostAddress)
+        peerLogs.write(peerId, System.currentTimeMillis())
+        peerLastKnownGoodAddress.write(peerId, address.hostAddress)
+      }
 
       val theirCommitBook = json.getJSONObject("commit_book")
 
@@ -110,10 +110,9 @@ class Engine(
           datagram.send(Destination(address, port), "request_provide_commits", keysPayload)
         }
       }
-      null
     }
 
-    datagram.subscribe("request_provide_commits") { address, port, bytes ->
+    datagram.subscribe("request_provide_commits") { address, port, bytes, consumed ->
       val theirOutdatedCommitKeys = JSONObject(String(bytes))
       val updatedCommitsContent = CommitBook.getCommitContent(theirOutdatedCommitKeys)
       val replyPayload = JSONObject()
@@ -126,10 +125,10 @@ class Engine(
           datagram.send(Destination(address, port), "provide_commits", replyPayload)
         }
       }
-      null
     }
 
-    datagram.subscribe("provide_commits") { address, port, bytes ->
+    datagram.subscribe("provide_commits") { address, port, bytes, consumed ->
+      if (consumed) return@subscribe
       val json = JSONObject(String(bytes))
       val commitContent = json.getJSONObject("content")
       CommitBook.updateCommits(commitContent).forEach { commit ->
@@ -141,11 +140,11 @@ class Engine(
           }
         }
       }
-      null
     }
 
     // A reply from the rendezvous server! He has found peer(s)
-    datagram.subscribe("peer_located") { address, port, bytes ->
+    datagram.subscribe("peer_located") { address, port, bytes, consumed ->
+      if (consumed) return@subscribe
       val peerMap = JSONObject(String(bytes))
       executor.submit { trySafe { reconnectWithPeers(peerMap) } }
       null
@@ -153,7 +152,7 @@ class Engine(
 
     // Someone wants to reach us through Ipv4! But for that we'll need
     // to punch a hole in CGNAT
-    datagram.subscribe("punch_hole") { address, port, bytes ->
+    datagram.subscribe("punch_hole") { address, port, bytes, consumed ->
       val json = JSONObject(String(bytes))
       val address = json.getString("address")
       val port = json.getInt("port")
@@ -173,18 +172,6 @@ class Engine(
     }
   }
 
-  private var myLastCommitAddressContent = ""
-
-  // We perform a stun request to RENDEZVOUS to discover our public IP
-  // and port beyond CGNAT mapping. This Public IP and port keeps changing.
-  private fun performStun() {
-    val newAddressArrayContent = myReachableAddresses().toString()
-    if (newAddressArrayContent != myLastCommitAddressContent) {
-      // We gotta commit hier
-      group.updateSelfInfo(newAddressArrayContent)
-      myLastCommitAddressContent = newAddressArrayContent
-    }
-  }
 
   // Announcing our presence to rendezvous, to let 'them know
   // our set of IP addresses if we/they get lost
@@ -236,31 +223,36 @@ class Engine(
 
   // The invitee scans the QR Code and contacts us for confirmation
   fun receiveInvitee() {
-    datagram.subscribe("receive_invitee") { address, port, bytes ->
-      datagram.unsubscribe("receive_invitee")
+    datagram.subscribe("receive_invitee") { address, port, bytes, consumed ->
+      // TODO: review this line
+      //  datagram.unsubscribe("receive_invitee")
+      //  because we may have to reply many times to a packet
 
-      val json = JSONObject(String(bytes))
-      val inviteeCommits = json.getJSONObject("invitee_commits")
+      if (!consumed) {
+        val json = JSONObject(String(bytes))
+        val inviteeCommits = json.getJSONObject("invitee_commits")
 
-      CommitBook.updateCommits(inviteeCommits)
+        CommitBook.updateCommits(inviteeCommits)
 
-      val inviteeCommonInfo = json.getJSONObject("invitee_common_info")
-      val inviteeDisplayName = inviteeCommonInfo.getString("display_name")
+        val inviteeCommonInfo = json.getJSONObject("invitee_common_info")
+        val inviteeDisplayName = inviteeCommonInfo.getString("display_name")
 
-      executor.submit {
-        trySafe {
-          val replyPayload = JSONObject()
-            .put("group_info", group.getGroupInfo())
-            .put("inviter_commits", group.selfCommits())
-            .toString()
-            .toByteArray()
-          datagram.send(Destination(address, port), "receive_success", replyPayload)
+        Log.d(TAG, "Successfully received peer $inviteeDisplayName")
+        Handler(Looper.getMainLooper()).post {
+          groupCallback()?.onNewPeerConnected(inviteeCommonInfo.toString())
         }
       }
 
-      Log.d(TAG, "Successfully received peer $inviteeDisplayName")
-      Handler(Looper.getMainLooper()).post {
-        groupCallback()?.onNewPeerConnected(inviteeCommonInfo.toString())
+      val replyPayload = JSONObject()
+        .put("group_info", group.getGroupInfo())
+        .put("inviter_commits", group.selfCommits())
+        .toString()
+        .toByteArray()
+      executor.submit {
+        datagram.send(Destination(address, port), "receive_success", replyPayload) { e ->
+          Log.d(TAG, "Error while replying! @receiveInvitee")
+          e.printStackTrace()
+        }
       }
       null
     }
@@ -269,7 +261,8 @@ class Engine(
   // We (the invitee) have scanned the QR Code, awaiting for confirmation
   fun acceptGroupInvite(addresses: JSONArray) {
     println("scanned the qr code $addresses")
-    datagram.subscribe("receive_success") { address, port, bytes ->
+    datagram.subscribe("receive_success") { address, port, bytes, consumed ->
+      if (consumed) return@subscribe
       datagram.unsubscribe("receive_success")
 
       val json = JSONObject(String(bytes))
@@ -434,7 +427,7 @@ class Engine(
       datagram.expectPacket("stun_response", 5000)?.let { stunReply ->
         val stunInfo = JSONObject(String(stunReply.data))
         addPublicAddr(stunInfo)
-        println("Stun response received successfully")
+        println("[OK] STUN")
         lastStunTime = System.currentTimeMillis()
         stunCache = stunInfo
       }
