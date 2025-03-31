@@ -5,12 +5,19 @@ import `in`.sethway.engine.commit.CommitHelper.commit
 import io.paperdb.Paper
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.nio.ByteBuffer
+import java.security.SecureRandom
+import javax.crypto.KeyGenerator
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 class Group(private val myId: String) {
 
   private val lock = Any()
 
   private val groupBook = Paper.book("group")
+  private val groupSecret = Paper.book("group_secret")
 
   private val peerInfoBook = Paper.book("peer_info")
   private val peerCommonInfoBook = Paper.book("peer_common_info")
@@ -33,6 +40,40 @@ class Group(private val myId: String) {
       groupBook.write("creator", creator)
 
       groupBook.write("am_creator", creator == myId)
+    }
+  }
+
+  @OptIn(ExperimentalEncodingApi::class)
+  fun makeGroupSecret() {
+    val secretKey = KeyGenerator.getInstance("AES")
+      .also { it.init(256) }.generateKey()
+    val iv = ByteArray(16).also { SecureRandom().nextBytes(it) }
+    groupSecret.write("key", Base64.encode(secretKey.encoded))
+    groupSecret.write("iv", Base64.encode(iv))
+  }
+
+  @OptIn(ExperimentalEncodingApi::class)
+  fun useGroupSecret(source: ByteArrayInputStream) {
+    synchronized(lock) {
+      val secretKey = ByteArray(source.read()).also { source.read(it) }
+      val iv = ByteArray(source.read()).also { source.read(it) }
+      groupSecret.write("key", Base64.encode(secretKey))
+      groupSecret.write("iv", Base64.encode(iv))
+    }
+  }
+
+  @OptIn(ExperimentalEncodingApi::class)
+  fun getGroupSecret(): ByteArray {
+    synchronized(lock) {
+      val secretKey = Base64.decode(groupSecret.read<String>("key")!!)
+      val iv = Base64.decode(groupSecret.read<String>("iv")!!)
+
+      return ByteBuffer.allocate(4 + secretKey.size + 4 + iv.size)
+        .putInt(secretKey.size)
+        .put(secretKey)
+        .putInt(iv.size)
+        .put(iv)
+        .array()
     }
   }
 

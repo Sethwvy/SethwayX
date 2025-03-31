@@ -16,7 +16,6 @@ import `in`.sethway.R
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
 import io.paperdb.Paper
-import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicReference
 
@@ -48,7 +47,7 @@ class SyncEngineService : Service() {
       engine.receiveInvitee()
     }
 
-    override fun getInvite(): String = engine.getGroupInvitation()
+    override fun getInvite(): String = engine.createGroupInvitation()
 
     override fun acceptInvite(invitation: ByteArray) {
       engine.acceptGroupInvite(invitation)

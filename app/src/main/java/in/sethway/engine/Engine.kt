@@ -226,9 +226,9 @@ class Engine(
   // The invitee scans the QR Code and contacts us for confirmation
   fun receiveInvitee() {
     datagram.subscribe("receive_invitee") { address, port, bytes, consumed ->
-      // TODO: review this line
-      //  datagram.unsubscribe("receive_invitee")
-      //  because we may have to reply many times to a packet
+      scheduledExecutor.schedule(
+        { datagram.unsubscribe("receive_invitee") },
+        5, TimeUnit.SECONDS)
 
       if (!consumed) {
         val json = JSONObject(String(bytes))
@@ -260,8 +260,11 @@ class Engine(
   }
 
   // We (the invitee) have scanned the QR Code, awaiting for confirmation
-  fun acceptGroupInvite(binaryContent: ByteArray) {
-    val destinations = readAddresses(binaryContent)
+  fun acceptGroupInvite(invitation: ByteArray) {
+    val source = ByteArrayInputStream(invitation)
+    group.useGroupSecret(source)
+    val destinations = readAddresses(source)
+
     datagram.subscribe("receive_success") { _, _, bytes, consumed ->
       if (consumed) return@subscribe
       datagram.unsubscribe("receive_success")
@@ -302,8 +305,7 @@ class Engine(
     }
   }
 
-  private fun readAddresses(bytes: ByteArray): List<Destination> {
-    val source = ByteArrayInputStream(bytes)
+  private fun readAddresses(source: ByteArrayInputStream): List<Destination> {
     val addresses = mutableListOf<Destination>()
     while (source.available() > 0) {
       val inetAddress = ByteArray(source.read())
@@ -317,11 +319,13 @@ class Engine(
 
   fun createNewGroup(groupId: String) {
     group.createGroup(groupId, myId)
+    group.makeGroupSecret()
     group.updateSelfCommonInfo(getMyCommonInfo().toString())
   }
 
-  fun getGroupInvitation(): String {
+  fun createGroupInvitation(): String {
     val sink = ByteArrayOutputStream()
+    sink.write(group.getGroupSecret())
     myReachableAddresses()
       .each<String> { element ->
         val dest = element.toDest()
