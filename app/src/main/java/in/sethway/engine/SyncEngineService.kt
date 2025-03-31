@@ -48,10 +48,10 @@ class SyncEngineService : Service() {
       engine.receiveInvitee()
     }
 
-    override fun getInvite(): String = engine.getGroupInvitation().toString()
+    override fun getInvite(): String = engine.getGroupInvitation()
 
-    override fun acceptInvite(invitation: String) {
-      engine.acceptGroupInvite(JSONArray(invitation))
+    override fun acceptInvite(invitation: ByteArray) {
+      engine.acceptGroupInvite(invitation)
     }
 
     override fun registerGroupCallback(callback: IGroupCallback) {

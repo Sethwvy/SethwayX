@@ -7,17 +7,20 @@ import android.util.Log
 import `in`.sethway.engine.commit.CommitBook
 import `in`.sethway.engine.commit.CommitHelper
 import `in`.sethway.engine.commit.CommitHelper.commit
-import `in`.sethway.engine.Group
 import `in`.sethway.smartdatagram.Destination
 import `in`.sethway.smartdatagram.SmartDatagram
 import inx.sethway.IGroupCallback
 import io.paperdb.Paper
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
+import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -147,15 +150,14 @@ class Engine(
       if (consumed) return@subscribe
       val peerMap = JSONObject(String(bytes))
       executor.submit { trySafe { reconnectWithPeers(peerMap) } }
-      null
     }
 
     // Someone wants to reach us through Ipv4! But for that we'll need
     // to punch a hole in CGNAT
     datagram.subscribe("punch_hole") { address, port, bytes, consumed ->
       val json = JSONObject(String(bytes))
-      val address = json.getString("address")
-      val port = json.getInt("port")
+      val toAddress = json.getString("address")
+      val toPort = json.getInt("port")
 
       println("Attempting punch hole $json")
       // Attempting to connect to that peer, will create a hole
@@ -163,7 +165,7 @@ class Engine(
       executor.submit {
         trySafe {
           datagram.send(
-            Destination(InetAddress.getByName(address), port),
+            Destination(InetAddress.getByName(toAddress), toPort),
             "uwu",
             "uwu".toByteArray()
           )
@@ -254,14 +256,13 @@ class Engine(
           e.printStackTrace()
         }
       }
-      null
     }
   }
 
   // We (the invitee) have scanned the QR Code, awaiting for confirmation
-  fun acceptGroupInvite(addresses: JSONArray) {
-    println("scanned the qr code $addresses")
-    datagram.subscribe("receive_success") { address, port, bytes, consumed ->
+  fun acceptGroupInvite(binaryContent: ByteArray) {
+    val destinations = readAddresses(binaryContent)
+    datagram.subscribe("receive_success") { _, _, bytes, consumed ->
       if (consumed) return@subscribe
       datagram.unsubscribe("receive_success")
 
@@ -277,28 +278,19 @@ class Engine(
       Handler(Looper.getMainLooper()).post {
         groupCallback()?.onGroupJoinSuccess()
       }
-      null
     }
     executor.submit {
-      val addrLen = addresses.length()
       // Look for any Ipv4 addresses. Before we reach them, we need to ensure
       // a hole is punched in the CGNAT interface of theirs. Or the packet will get dropped!
-      for (i in 0..<addrLen) {
-        addresses.getString(i).let {
-          if (!it.contains(":")) {
-            // Thees's a Ipv4 address! We gotta punch a hole first!
-            val destination = it.toDest()
-            val punchHoleRequest = JSONObject()
-              .put("address", destination.address)
-              .put("port", destination.port)
-              .toString()
-              .toByteArray()
-            // We'll ask the server.
-            // The server will ask the other device to make a hole.
-            println("Asking for hole to be punched! ${destination.address} ${destination.port}")
-            datagram.send(RENDEZVOUS_DESTINATIONS, "punch_hole", punchHoleRequest) { }
-          }
-        }
+      for (dest in destinations) {
+        if (dest.address !is Inet4Address) continue
+        val punchHoleRequest = JSONObject()
+          .put("address", dest.address)
+          .put("port", dest.port)
+          .toString()
+          .toByteArray()
+        println("Asking for hole to be punched! ${dest.address} ${dest.port}")
+        datagram.send(RENDEZVOUS_DESTINATIONS, "punch_hole", punchHoleRequest) { }
       }
 
       val payload = JSONObject()
@@ -306,14 +298,21 @@ class Engine(
         .put("invitee_common_info", getMyCommonInfo())
         .toString()
         .toByteArray()
-      val destinations = mutableListOf<Destination>()
-      for (i in 0..<addrLen) {
-        trySafe {
-          destinations += addresses.getString(i).toDest()
-        }
-      }
       datagram.send(destinations, "receive_invitee", payload)
     }
+  }
+
+  private fun readAddresses(bytes: ByteArray): List<Destination> {
+    val source = ByteArrayInputStream(bytes)
+    val addresses = mutableListOf<Destination>()
+    while (source.available() > 0) {
+      val inetAddress = ByteArray(source.read())
+        .also { source.read(it) }.let { InetAddress.getByAddress(it) }
+      val port = ByteArray(4)
+        .also { source.read(it) }.let { ByteBuffer.wrap(it).getInt() }
+      addresses += Destination(inetAddress, port)
+    }
+    return addresses
   }
 
   fun createNewGroup(groupId: String) {
@@ -321,7 +320,19 @@ class Engine(
     group.updateSelfCommonInfo(getMyCommonInfo().toString())
   }
 
-  fun getGroupInvitation(): JSONArray = myReachableAddresses()
+  fun getGroupInvitation(): String {
+    val sink = ByteArrayOutputStream()
+    myReachableAddresses()
+      .each<String> { element ->
+        val dest = element.toDest()
+        val addrBytes = dest.address.address
+
+        sink.write(addrBytes.size)
+        sink.write(addrBytes)
+        sink.write(ByteBuffer.allocate(4).putInt(dest.port).array())
+      }
+    return String(sink.toByteArray(), Charsets.ISO_8859_1)
+  }
 
   fun commitNewEntry(entry: JSONObject) {
     // That's it! This commit should auto propagate with sync packets!
@@ -388,7 +399,9 @@ class Engine(
 
   private fun String.toDest(): Destination = split(" ").let {
     Destination(
-      InetAddress.getByName(it[0].replace("[", "").replace("]", "")),
+      InetAddress.getByName(
+        it[0].replace("[", "").replace("]", "")
+      ),
       it[1].toInt()
     )
   }
@@ -441,5 +454,12 @@ class Engine(
     datagram.close()
     executor.shutdownNow()
     scheduledExecutor.shutdownNow()
+  }
+
+  private fun <E> JSONArray.each(consumer: (E) -> Unit) {
+    val l = length()
+    for (i in 0..<l) {
+      consumer(get(i) as E)
+    }
   }
 }

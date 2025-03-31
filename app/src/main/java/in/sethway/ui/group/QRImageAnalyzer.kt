@@ -15,7 +15,7 @@ import java.io.IOException
 
 class QRImageAnalyzer(
   private val context: Context,
-  private val callback: (qrContent: String) -> Unit
+  private val callback: (qrContent: ByteArray) -> Unit
 ) : ImageAnalysis.Analyzer {
 
   companion object {
@@ -55,8 +55,7 @@ class QRImageAnalyzer(
     val currTime = System.currentTimeMillis()
     if (barcodes.isNotEmpty() && currTime - lastCallbackInvoked > MIN_CALLBACK_INTERVAL) {
       lastCallbackInvoked = currTime
-      val qrText = barcodes[0].rawValue!!
-      callback(qrText)
+      callback(barcodes[0].rawBytes!!)
     }
   }
 

@@ -18,7 +18,7 @@ interface IIPCEngine {
     String getInvite();
 
     // We (invitee) have scanned the QR Code
-    void acceptInvite(String invitation);
+    void acceptInvite(in byte[] invitation);
 
     void registerGroupCallback(in IGroupCallback callback);
     void unregisterGroupCallback();
