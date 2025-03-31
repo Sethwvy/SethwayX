@@ -60,7 +60,7 @@ dependencies {
   implementation("me.relex:circleindicator:2.1.6")
   implementation("com.github.f4b6a3:uuid-creator:6.0.0")
 
-  implementation("com.github.Sethwvy:SmartDatagram:ec4cafb9be")
+  implementation("com.github.Sethwvy:SmartDatagram:bc2378a950")
 
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
   implementation(libs.play.services.mlkit.barcode.scanning)

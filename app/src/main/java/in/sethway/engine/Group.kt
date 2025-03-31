@@ -8,10 +8,15 @@ import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.security.SecureRandom
+import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+@OptIn(ExperimentalEncodingApi::class)
 class Group(private val myId: String) {
 
   private val lock = Any()
@@ -34,6 +39,28 @@ class Group(private val myId: String) {
       groupBook.read("group_id")!!
     }
 
+  lateinit var encryptCipher: Cipher
+  lateinit var decryptCipher: Cipher
+
+  init {
+    if (exists) {
+      val secretKey = SecretKeySpec(
+        Base64.decode(groupSecret.read<String>("key")!!), "AES")
+      val iv = Base64.decode(groupSecret.read<String>("iv")!!)
+      loadCipher(secretKey, iv)
+    }
+  }
+
+  fun ByteArray.encrypt(): ByteArray = messageEncrypter(this)
+
+  val messageEncrypter: (ByteArray) -> ByteArray = { message ->
+    encryptCipher.doFinal(message)
+  }
+
+  val messageDecrypter: (ByteArray) -> ByteArray = { encrypted ->
+    decryptCipher.doFinal(encrypted)
+  }
+
   fun createGroup(groupId: String, creator: String) {
     synchronized(lock) {
       groupBook.write("group_id", groupId)
@@ -43,26 +70,35 @@ class Group(private val myId: String) {
     }
   }
 
-  @OptIn(ExperimentalEncodingApi::class)
   fun makeGroupSecret() {
     val secretKey = KeyGenerator.getInstance("AES")
       .also { it.init(256) }.generateKey()
     val iv = ByteArray(16).also { SecureRandom().nextBytes(it) }
+
     groupSecret.write("key", Base64.encode(secretKey.encoded))
     groupSecret.write("iv", Base64.encode(iv))
+    loadCipher(secretKey, iv)
   }
 
-  @OptIn(ExperimentalEncodingApi::class)
   fun useGroupSecret(source: ByteArrayInputStream) {
     synchronized(lock) {
-      val secretKey = ByteArray(source.read()).also { source.read(it) }
+      val secretKeyBytes = ByteArray(source.read()).also { source.read(it) }
       val iv = ByteArray(source.read()).also { source.read(it) }
-      groupSecret.write("key", Base64.encode(secretKey))
+
+      groupSecret.write("key", Base64.encode(secretKeyBytes))
       groupSecret.write("iv", Base64.encode(iv))
+      loadCipher(SecretKeySpec(secretKeyBytes, "AES"), iv)
     }
   }
 
-  @OptIn(ExperimentalEncodingApi::class)
+  private fun loadCipher(secretKey: SecretKey, iv: ByteArray) {
+    encryptCipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+    encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, IvParameterSpec(iv))
+
+    decryptCipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+    decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, IvParameterSpec(iv))
+  }
+
   fun getGroupSecret(): ByteArray {
     synchronized(lock) {
       val secretKey = Base64.decode(groupSecret.read<String>("key")!!)
