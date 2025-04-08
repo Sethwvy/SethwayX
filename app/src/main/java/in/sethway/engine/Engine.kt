@@ -93,7 +93,7 @@ class Engine(
       trySafe { broadcastCommitBook(CommitBook.getCommitBook("entries")) }
     }, 0, 10, TimeUnit.SECONDS)
 
-    datagram.subscribe("sync_commit_book") { address, port, bytes, consumed ->
+    datagram.subscribe("sync_commit_book", group.messageDecrypter) { address, port, bytes, consumed ->
       val json = JSONObject(String(bytes))
 
       if (!consumed) {
@@ -108,29 +108,31 @@ class Engine(
 
       val ourOutdatedCommitKeys = CommitBook.compareCommits(theirCommitBook)
       if (ourOutdatedCommitKeys.length() > 0) {
-        val keysPayload = ourOutdatedCommitKeys.toString().toByteArray()
+        val keysPayload = ourOutdatedCommitKeys.toString().toByteArray().encrypt()
         trySafe {
           datagram.send(Destination(address, port), "request_provide_commits", keysPayload)
         }
       }
     }
 
-    datagram.subscribe("request_provide_commits") { address, port, bytes, consumed ->
+    datagram.subscribe("request_provide_commits", group.messageDecrypter) { address, port, bytes, consumed ->
       val theirOutdatedCommitKeys = JSONObject(String(bytes))
       val updatedCommitsContent = CommitBook.getCommitContent(theirOutdatedCommitKeys)
-      val replyPayload = JSONObject()
-        .put("content", updatedCommitsContent)
-        .toString()
-        .toByteArray()
 
       if (updatedCommitsContent.length() > 0) {
+        val replyPayload = JSONObject()
+          .put("content", updatedCommitsContent)
+          .toString()
+          .toByteArray()
+          .encrypt()
+
         trySafe {
           datagram.send(Destination(address, port), "provide_commits", replyPayload)
         }
       }
     }
 
-    datagram.subscribe("provide_commits") { address, port, bytes, consumed ->
+    datagram.subscribe("provide_commits", group.messageDecrypter) { address, port, bytes, consumed ->
       if (consumed) return@subscribe
       val json = JSONObject(String(bytes))
       val commitContent = json.getJSONObject("content")
@@ -167,7 +169,7 @@ class Engine(
           datagram.send(
             Destination(InetAddress.getByName(toAddress), toPort),
             "uwu",
-            "uwu".toByteArray()
+            "uwu".toByteArray().encrypt()
           )
         }
       }
@@ -209,7 +211,7 @@ class Engine(
   // We've got a response from rendezvous server for our lookup request!
   // Now we got to reconnect with the peers...
   private fun reconnectWithPeers(peersLocation: JSONObject) {
-    val commitBookPayload = getCommitBookPayload(group.getGroupCommits())
+    val commitBookPayload = getCommitBookPayload(group.getGroupCommits()).encrypt()
     val destinations = mutableListOf<Destination>()
     for (peerId in peersLocation.keys()) {
       val peerAddresses = peersLocation.getJSONArray(peerId)
@@ -250,6 +252,7 @@ class Engine(
         .put("inviter_commits", group.selfCommits())
         .toString()
         .toByteArray()
+        .encrypt()
       executor.submit {
         datagram.send(Destination(address, port), "receive_success", replyPayload) { e ->
           Log.d(TAG, "Error while replying! @receiveInvitee")
@@ -301,6 +304,7 @@ class Engine(
         .put("invitee_common_info", getMyCommonInfo())
         .toString()
         .toByteArray()
+        .encrypt()
       datagram.send(destinations, "receive_invitee", payload)
     }
   }
@@ -354,13 +358,14 @@ class Engine(
       .put("content", content)
       .toString()
       .toByteArray()
+      .encrypt()
     forEachPeerAddress { destination ->
       datagram.send(destination, "provide_commits", payload)
     }
   }
 
   private fun broadcastCommitBook(commitBook: JSONObject) {
-    val syncPacket = getCommitBookPayload(commitBook)
+    val syncPacket = getCommitBookPayload(commitBook).encrypt()
     forEachPeerAddress { destination ->
       datagram.send(destination, "sync_commit_book", syncPacket)
     }
@@ -466,4 +471,7 @@ class Engine(
       consumer(get(i) as E)
     }
   }
+
+  fun ByteArray.encrypt(): ByteArray = group.messageEncrypter(this)
+  fun ByteArray.decrypt(): ByteArray = group.messageDecrypter(this)
 }

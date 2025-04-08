@@ -39,8 +39,8 @@ class Group(private val myId: String) {
       groupBook.read("group_id")!!
     }
 
-  lateinit var encryptCipher: Cipher
-  lateinit var decryptCipher: Cipher
+  private lateinit var encryptCipher: Cipher
+  private lateinit var decryptCipher: Cipher
 
   init {
     if (exists) {
@@ -50,8 +50,6 @@ class Group(private val myId: String) {
       loadCipher(secretKey, iv)
     }
   }
-
-  fun ByteArray.encrypt(): ByteArray = messageEncrypter(this)
 
   val messageEncrypter: (ByteArray) -> ByteArray = { message ->
     encryptCipher.doFinal(message)

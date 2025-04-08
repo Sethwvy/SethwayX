@@ -51,10 +51,10 @@ dependencies {
 
   implementation("io.github.pilgr:paperdb:2.7.2")
 
-  implementation("androidx.camera:camera-core:1.4.1")
-  implementation("androidx.camera:camera-camera2:1.4.1")
-  implementation("androidx.camera:camera-lifecycle:1.4.1")
-  implementation("androidx.camera:camera-view:1.4.1")
+  implementation("androidx.camera:camera-core:1.4.2")
+  implementation("androidx.camera:camera-camera2:1.4.2")
+  implementation("androidx.camera:camera-lifecycle:1.4.2")
+  implementation("androidx.camera:camera-view:1.4.2")
 
   implementation("com.github.alexzhirkevich:custom-qr-generator:1.6.2")
   implementation("me.relex:circleindicator:2.1.6")
