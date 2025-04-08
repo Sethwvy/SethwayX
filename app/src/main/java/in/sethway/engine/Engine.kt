@@ -227,7 +227,7 @@ class Engine(
 
   // The invitee scans the QR Code and contacts us for confirmation
   fun receiveInvitee() {
-    datagram.subscribe("receive_invitee") { address, port, bytes, consumed ->
+    datagram.subscribe("receive_invitee", group.messageDecrypter) { address, port, bytes, consumed ->
       scheduledExecutor.schedule(
         { datagram.unsubscribe("receive_invitee") },
         5, TimeUnit.SECONDS)
@@ -268,7 +268,7 @@ class Engine(
     group.useGroupSecret(source)
     val destinations = readAddresses(source)
 
-    datagram.subscribe("receive_success") { _, _, bytes, consumed ->
+    datagram.subscribe("receive_success", group.messageDecrypter) { _, _, bytes, consumed ->
       if (consumed) return@subscribe
       datagram.unsubscribe("receive_success")
 

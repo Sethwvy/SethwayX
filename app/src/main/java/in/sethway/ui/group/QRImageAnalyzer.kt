@@ -55,7 +55,7 @@ class QRImageAnalyzer(
     val currTime = System.currentTimeMillis()
     if (barcodes.isNotEmpty() && currTime - lastCallbackInvoked > MIN_CALLBACK_INTERVAL) {
       lastCallbackInvoked = currTime
-      callback(barcodes[0].rawBytes!!)
+      barcodes[0].rawBytes?.let { callback(it) }
     }
   }
 

@@ -80,8 +80,11 @@ class Group(private val myId: String) {
 
   fun useGroupSecret(source: ByteArrayInputStream) {
     synchronized(lock) {
-      val secretKeyBytes = ByteArray(source.read()).also { source.read(it) }
-      val iv = ByteArray(source.read()).also { source.read(it) }
+      val secretKeyByteLength = ByteBuffer.wrap(ByteArray(4).also { source.read(it) }).getInt()
+      val secretKeyBytes = ByteArray(secretKeyByteLength).also { source.read(it) }
+
+      val ivBytesLength = ByteBuffer.wrap(ByteArray(4).also { source.read(it) }).getInt()
+      val iv = ByteArray(ivBytesLength).also { source.read(it) }
 
       groupSecret.write("key", Base64.encode(secretKeyBytes))
       groupSecret.write("iv", Base64.encode(iv))
