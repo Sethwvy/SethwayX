@@ -10,9 +10,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.navigation.fragment.findNavController
 import com.github.f4b6a3.uuid.UuidCreator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import `in`.sethway.R
-import `in`.sethway.databinding.DialogPickGroupNameBinding
-import `in`.sethway.databinding.FragmentPairBinding
+import `in`.sethway.app.R
+import `in`.sethway.app.databinding.DialogPickGroupNameBinding
+import `in`.sethway.app.databinding.FragmentPairBinding
 
 class PairFragment : Fragment() {
 

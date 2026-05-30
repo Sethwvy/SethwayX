@@ -10,8 +10,8 @@ import android.view.ViewGroup
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import `in`.sethway.R
-import `in`.sethway.databinding.FragmentHomeBinding
+import `in`.sethway.app.R
+import `in`.sethway.app.databinding.FragmentHomeBinding
 import `in`.sethway.ui.Animation.withCardAnimation
 
 //import `in`.sethway.engine.group_old.Group

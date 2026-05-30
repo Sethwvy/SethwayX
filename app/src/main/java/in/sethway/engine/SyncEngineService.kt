@@ -12,7 +12,7 @@ import android.os.IBinder
 import android.os.Process
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import `in`.sethway.R
+import `in`.sethway.app.R
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
 import io.paperdb.Paper

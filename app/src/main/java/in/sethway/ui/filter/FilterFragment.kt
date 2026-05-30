@@ -16,8 +16,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import `in`.sethway.App.Companion.GROUP
-import `in`.sethway.R
-import `in`.sethway.databinding.FragmentFilterBinding
+import `in`.sethway.app.R
+import `in`.sethway.app.databinding.FragmentFilterBinding
 import `in`.sethway.ui.adapters.AppAdapter
 import `in`.sethway.ui.adapters.AppAdapterElement
 import `in`.sethway.ui.adapters.AppElement

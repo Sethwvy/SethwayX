@@ -12,7 +12,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.materialswitch.MaterialSwitch
-import `in`.sethway.R
+import `in`.sethway.app.R
 
 open class AppAdapterElement
 class HeaderElement(val text: String) : AppAdapterElement()

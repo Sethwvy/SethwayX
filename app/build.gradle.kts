@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-  namespace = "in.sethway"
+  namespace = "in.sethway.app"
   compileSdk = 35
 
   defaultConfig {
-    applicationId = "in.sethway"
+    applicationId = "in.sethway.app"
     minSdk = 24
     targetSdk = 35
-    versionCode = 4
-    versionName = "0.4 Beta"
+    versionCode = 3
+    versionName = "1 MelonBeta"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

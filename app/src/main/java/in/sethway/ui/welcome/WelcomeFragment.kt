@@ -22,9 +22,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import `in`.sethway.App
 import `in`.sethway.App.Companion.BOOK
 import `in`.sethway.App.Companion.GROUP
-import `in`.sethway.R
-import `in`.sethway.databinding.DialogPickNameBinding
-import `in`.sethway.databinding.FragmentWelcomeBinding
+import `in`.sethway.app.R
+import `in`.sethway.app.databinding.DialogPickNameBinding
+import `in`.sethway.app.databinding.FragmentWelcomeBinding
 import `in`.sethway.engine.SyncEngineService
 import `in`.sethway.engine.Group
 import `in`.sethway.ui.manage_notif.ManageNotificationPermissionFragment

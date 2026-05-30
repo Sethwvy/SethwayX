@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
-import `in`.sethway.R
+import `in`.sethway.app.R
 import org.json.JSONObject
 
 class DevicesAdapter(

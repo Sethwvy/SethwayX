@@ -6,7 +6,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.fragment.NavHostFragment
-import `in`.sethway.databinding.ActivityMainBinding
+import `in`.sethway.app.R
+import `in`.sethway.app.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     supportFragmentManager.findFragmentById(R.id.nav_host_fragment_content_main) as NavHostFragment
+    println("hello world")
   }
 
   override fun onDestroy() {

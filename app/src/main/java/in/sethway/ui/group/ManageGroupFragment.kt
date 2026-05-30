@@ -9,8 +9,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import `in`.sethway.App.Companion.GROUP
-import `in`.sethway.R
-import `in`.sethway.databinding.FragmentManageGroupBinding
+import `in`.sethway.app.R
+import `in`.sethway.app.databinding.FragmentManageGroupBinding
 import `in`.sethway.ui.Animation.withCardAnimation
 import `in`.sethway.ui.adapters.DevicesAdapter
 

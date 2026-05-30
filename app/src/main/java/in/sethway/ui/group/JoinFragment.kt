@@ -23,8 +23,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import `in`.sethway.R
-import `in`.sethway.databinding.FragmentJoinBinding
+import `in`.sethway.app.R
+import `in`.sethway.app.databinding.FragmentJoinBinding
 import `in`.sethway.engine.SyncEngineService
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine

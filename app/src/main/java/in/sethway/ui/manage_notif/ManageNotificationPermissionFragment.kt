@@ -12,9 +12,9 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
-import `in`.sethway.R
+import `in`.sethway.app.R
 import `in`.sethway.ui.adapters.ImageAdapter
-import `in`.sethway.databinding.FragmentManageNotificationPermissionBinding
+import `in`.sethway.app.databinding.FragmentManageNotificationPermissionBinding
 
 
 class ManageNotificationPermissionFragment : Fragment() {

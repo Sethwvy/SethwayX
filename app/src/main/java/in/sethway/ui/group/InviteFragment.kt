@@ -30,8 +30,8 @@ import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorFrameSha
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorPixelShape
 import com.github.alexzhirkevich.customqrgenerator.vector.style.QrVectorShapes
 import `in`.sethway.App.Companion.GROUP
-import `in`.sethway.R
-import `in`.sethway.databinding.FragmentInviteBinding
+import `in`.sethway.app.R
+import `in`.sethway.app.databinding.FragmentInviteBinding
 import `in`.sethway.engine.SyncEngineService
 import inx.sethway.IGroupCallback
 import inx.sethway.IIPCEngine
